@@ -23,7 +23,6 @@ logic [ 7:0] num_blocks;
 logic        cur_we;
 logic [15:0] cur_addr;
 logic [31:0] cur_write_data;
-logic [512:0] memory_block;
 logic [31:0] s1, s0;
 
 // SHA256 K constants
@@ -95,19 +94,18 @@ function logic [31:0] expansion;
 endfunction
 				
 /* SHA-256 FSM 																				*/
-/* Get a BLOCK from the memory, COMPUTE Hash output using SHA256 function  */
-/* Write back hash value back to memory    											*/
+/* Get a BLOCK from the top module, COMPUTE output hash using SHA256_op    */
+/* Write back hash value back to top module											*/
 always_ff @(posedge clk, negedge reset_n)
 begin
   if (!reset_n) begin
-    //cur_we <= 1'b0;
     state <= IDLE;
   end 
   else 
   case (state)
-    /* Initialize hash values h0 to h7 and a to h,				  */
-	 /* Use h_in provided by bitcoin_hash top module 			  */
-	 /* All other variables are set to zero 						  */
+    /* Initialize hash values h0 to h7 and a to h,	   */
+	 /* Use h_in provided by top module 					*/
+	 /* All other variables are set to zero 			   */
     IDLE: begin 
        if(start) begin
 		 
@@ -128,9 +126,7 @@ begin
 		 g <= h_in[6];
 		 h <= h_in[7];
 
-		 //cur_we <= 0;
 		 offset <= 16'b0;
-		 //cur_addr <= message_addr; 
 		 i <= 8'b0;
 		 j <= 8'b0;
 		 tem <= 8'b0;
@@ -143,7 +139,7 @@ begin
 	 end
 	 
 
-	 /* fill first 16 words from "mem_read_data" into "w" array 		 */
+	 /* fill 16 words from "mem_read_data" into "w" array 		 		 */
 	 /* Proceed to COMPUTE state to obtain hash of the 512-bit block 	 */
     BLOCK: begin
 		if(j < num_blocks) begin
@@ -169,14 +165,13 @@ begin
 		end
     end
 
-    /* Compute each block's hash function sequentially										*/
     /* Go back to BLOCK stage to check if there are still message blocks available  */
     /* Otherwise, move to WRITE stage																*/
     COMPUTE: begin
         if (tem < 64) begin
 	 /* Shift the message buffer left by one word to discard the oldest word			  */
-    /* and make room for the newly expanded word at the end (w[15]). This maintains a */
-	 /* 16-word sliding window required for SHA-256's 64-round processing. 				  */
+    /* and make room for the newly expanded word at the end (w[15]). 					  */
+	 /* This efficiently executes SHA-256's 64-round processing, conserving resources  */
 				for (int n = 0; n < 15; n++) 
 					w[n] <= w[n+1];
 				w[15] <= expansion;
@@ -205,13 +200,11 @@ begin
 				tem <= 0;
 				state <= BLOCK;
         end
-    end
-	 
+    end 
 
     // Write the final computed hash values into 'mem_write_data' to 
     // pass values to top module: bitcoin_hash.sv
     WRITE: begin
-			//cur_addr <= output_addr;
 			if(i < 8) begin
 				case(i)
 					0: mem_write_data[i] <= h0;
@@ -224,7 +217,6 @@ begin
 					7: mem_write_data[i] <= h7;
 				endcase 
 				i <= i + 1'b1;
-				//offset <= i;
 				state <= WRITE;
 			end
 			else 
