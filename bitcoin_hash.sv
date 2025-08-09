@@ -191,6 +191,9 @@ begin
 		state <= SET3;
 	end
 	
+	/* Once 16 iterations of block 2 have been hashed,  */
+	/* Create 16 new 512-bit blocks using the 16 output */
+	/* hashes generated from Phase 2 */
 	SET3: begin
 	 start1 <= 0;
 	 if(done1[16] == 1) begin
@@ -211,6 +214,7 @@ begin
 			end
 		end
 		
+	/* Restore Hash Constants to their original values */
 		h_ini[0] <= 32'h6a09e667;
 		h_ini[1] <= 32'hbb67ae85;
 		h_ini[2] <= 32'h3c6ef372;
@@ -250,7 +254,7 @@ begin
 		state <= SET4;
 	end
 	
-	
+	/* Write only the first word of each of the 16 generated output hashes to memory*/
 	WRITE: begin
 	cur_addr <= output_addr;
 		if(i < 16) begin
