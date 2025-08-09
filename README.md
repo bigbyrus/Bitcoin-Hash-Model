@@ -1,4 +1,4 @@
-# Bitcoin Hash Pipeline — Multi-Instance SHA-256 FSM in SystemVerilog
+# Bitcoin Hash Pipeline — FSM Design in SystemVerilog
 
 ## Overview
 This project implements a **Bitcoin-style hashing pipeline** in SystemVerilog built around the, slightly modified, `simplified_sha256.sv` module. 
