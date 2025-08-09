@@ -1,8 +1,8 @@
-# Bitcoin Hash Pipeline — FSM Design in SystemVerilog
+# Bitcoin Hashing using SHA256
 
 ## Overview
-This project implements a **Bitcoin-style hashing pipeline** in SystemVerilog built around the, slightly modified, `simplified_sha256.sv` module. 
-[SHA-256 hardware module](https://github.com/bigbyrus/SHA-256) was modified so that it left all memory accesses to be done by the top module, `bitcoin_hash.sv`. 
+This project implements a Finite State Machine in SystemVerilog built around the, slightly modified, `simplified_sha256.sv` module. 
+[My SHA-256 module](https://github.com/bigbyrus/SHA-256) was modified so that it left all memory accesses to be done by the top module, `bitcoin_hash.sv`. 
 This way the `simplified_sha256.sv` module only concerns itself with processing 512-bit blocks, and storing the output hashes in an unpacked array of 8, 32-bit, elements.
 The design is structured to mimic Bitcoin's mining process where multiple nonce values are tried per iteration.
 
