@@ -8,9 +8,8 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
 
 The top-level module (`bitcoin_hash.sv`) instantiates `simplified_sha256` multiple times to create a three-phase hashing process:
 
----
+<img width="1344" height="568" alt="Screenshot 2025-08-08 at 11 30 37 PM" src="https://github.com/user-attachments/assets/2bfa7a5a-cd5b-4a7b-b81f-aad5c7e6ee48" />
 
-## Pipeline Structure
 
 ### **Phase 1 — Initial Block Hash**
 1. A single instance of `simplified_sha256` computes the **initial 256-bit hash** from the **first 512-bit message block**.
