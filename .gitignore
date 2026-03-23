@@ -19,3 +19,5 @@ output_files/bitcoin_hash.map.rpt
 output_files/bitcoin_hash.sld
 output_files/bitcoin_hash.sof
 output_files/bitcoin_hash.sta.summary
+output_files/bitcoin_hash.flow.rpt
+output_files/bitcoin_hash.pin
