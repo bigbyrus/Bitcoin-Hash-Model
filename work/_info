@@ -1,0 +1,86 @@
+m255
+K4
+z2
+!s11f vlog 2020.1 2020.02, Feb 28 2020
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+dC:/Users/cyroc/Documents/projects/sha256_test
+vbitcoin_hash
+Z0 DXx6 sv_std 3 std 0 22 VYECXdT12H8WgbUP_5Y6:3
+!s110 1754713181
+!i10b 1
+!s100 _22gAcDE^A5O7k[z@CQJ62
+Z1 !s11b Dg1SIo80bB@j0V0VzS_@n1
+IQSWXMK8]koN<;ib<9BNg]1
+Z2 VDg1SIo80bB@j0V0VzS_@n1
+S1
+Z3 dC:/Users/cyroc/Documents/projects/bitcoin_hash
+w1754713172
+8C:/Users/cyroc/Documents/projects/bitcoin_hash/bitcoin_hash.sv
+FC:/Users/cyroc/Documents/projects/bitcoin_hash/bitcoin_hash.sv
+!i122 14
+L0 1 285
+Z4 OV;L;2020.1;71
+r1
+!s85 0
+31
+!s108 1754713181.000000
+!s107 C:/Users/cyroc/Documents/projects/bitcoin_hash/bitcoin_hash.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|C:/Users/cyroc/Documents/projects/bitcoin_hash/bitcoin_hash.sv|
+!i113 1
+Z5 o-work work -sv
+Z6 tCvgOpt 0
+vsimplified_sha256
+R0
+!s110 1754712892
+!i10b 1
+!s100 ;C86YWf5AibaS5o1N:`0`2
+R1
+INddU5:8TC>BeRd:@MIS6A3
+R2
+S1
+R3
+w1754712882
+8C:/Users/cyroc/Documents/projects/bitcoin_hash/simplified_sha256.sv
+FC:/Users/cyroc/Documents/projects/bitcoin_hash/simplified_sha256.sv
+!i122 12
+L0 1 240
+R4
+r1
+!s85 0
+31
+!s108 1754712892.000000
+!s107 C:/Users/cyroc/Documents/projects/bitcoin_hash/simplified_sha256.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|C:/Users/cyroc/Documents/projects/bitcoin_hash/simplified_sha256.sv|
+!i113 1
+R5
+R6
+vtb_bitcoin_hash
+R0
+!s110 1754708829
+!i10b 1
+!s100 ebTZP?P0E38iefTcGk8Pf2
+R1
+I6CRK35m8d?3HSN4kh7:Hd0
+R2
+S1
+R3
+w1754498757
+8C:/Users/cyroc/Documents/projects/bitcoin_hash/tb_bitcoin_hash.sv
+FC:/Users/cyroc/Documents/projects/bitcoin_hash/tb_bitcoin_hash.sv
+!i122 2
+L0 1 356
+R4
+r1
+!s85 0
+31
+!s108 1754708829.000000
+!s107 C:/Users/cyroc/Documents/projects/bitcoin_hash/tb_bitcoin_hash.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|C:/Users/cyroc/Documents/projects/bitcoin_hash/tb_bitcoin_hash.sv|
+!i113 1
+R5
+R6
