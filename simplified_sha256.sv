@@ -169,14 +169,9 @@ begin
 		end
     end
 
-    /* Compute each block's hash function sequentially										*/
-    /* Go back to BLOCK stage to check if there are still message blocks available  */
-    /* Otherwise, move to WRITE stage																*/
+    /* this is the CRITICAL PATH "pecompute wt" */
     COMPUTE: begin
         if (tem < 64) begin
-	 /* Shift the message buffer left by one word to discard the oldest word			  */
-    /* and make room for the newly expanded word at the end (w[15]). This maintains a */
-	 /* 16-word sliding window required for SHA-256's 64-round processing. 				  */
 				for (int n = 0; n < 15; n++) 
 					w[n] <= w[n+1];
 				w[15] <= expansion;
