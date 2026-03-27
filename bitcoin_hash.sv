@@ -15,7 +15,7 @@ logic [31:0] message[31:0];
 logic [15:0] offset;
 logic [31:0] w[15:0][15:0];
 logic [31:0] h_ini[7:0];
-logic [31:0] h[15:0][7:0];
+logic [31:0] h[15:0][7:0], h_phase1[7:0];
 logic [7:0] i, j, n;
 
 parameter int k[64] = '{
@@ -47,7 +47,7 @@ simplified_sha256 sha256_phase1(
   .mem_read_data(w[0]),
   .h_in(h_ini),
   .done(done1[0]),
-  .mem_write_data(h_ini)
+  .mem_write_data(h[0])
 );					
 			
 genvar q;
@@ -177,11 +177,10 @@ begin
 		w[14][3] <= 32'd14;
 		w[15][3] <= 32'd15;
 		
-		/* might not need this 
 		for(n = 0; n<8; n++) begin
 			h_ini[n] <= h_phase1[n];
 		end
-		*/
+		
 		i <= 0;
 		j <= 0;
 		state <= PHASE2;
