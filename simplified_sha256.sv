@@ -44,7 +44,7 @@ function logic [15:0] determine_num_blocks(input logic [31:0] size);
 	begin
 		determine_num_blocks = (size + 15) / 16;
 	end
-endfunction  
+endfunction
 
 assign num_blocks = determine_num_blocks(NUM_OF_WORDS); 
 
@@ -68,7 +68,6 @@ endfunction
 assign mem_clk = clk;
 assign mem_addr = cur_addr + offset;
 assign mem_we = cur_we;
-//assign mem_write_data = cur_write_data;
 
 
 // Right Rotation Example : right rotate input x by r
@@ -100,14 +99,11 @@ endfunction
 always_ff @(posedge clk, negedge reset_n)
 begin
   if (!reset_n) begin
-    //cur_we <= 1'b0;
     state <= IDLE;
   end 
   else 
   case (state)
-    /* Initialize hash values h0 to h7 and a to h,				  */
-	 /* Use h_in provided by bitcoin_hash top module 			  */
-	 /* All other variables are set to zero 						  */
+    /* Initialize hash values h0 to h7 and a to h */
     IDLE: begin 
        if(start) begin
 		 
@@ -128,48 +124,31 @@ begin
 		 g <= h_in[6];
 		 h <= h_in[7];
 
-		 //cur_we <= 0;
 		 offset <= 16'b0;
-		 //cur_addr <= message_addr; 
 		 i <= 8'b0;
 		 j <= 8'b0;
 		 tem <= 8'b0;
-		 state <= WAIT;
+		 state <= BLOCK;
        end
     end
-	 
-	 WAIT: begin
-		state <= BLOCK;
-	 end
 	 
 
 	 /* fill first 16 words from "mem_read_data" into "w" array 		 */
 	 /* Proceed to COMPUTE state to obtain hash of the 512-bit block 	 */
     BLOCK: begin
-		if(j < num_blocks) begin
-        if (i < 16) begin
-				if(j == 0)
-					w[i] <= mem_read_data[i];
-				else 
-					w[i] <= mem_read_data[i + 16];
-				i <= i + 1'b1;
-				state <= BLOCK;
-		  end
-		  else begin
-				j <= j + 1'b1;
+       if(i < 16) begin
+			w[i] <= mem_read_data[i];
+			i <= i + 1'b1;
+			state <= BLOCK;
+		 end
+		 else begin
 				i <= 0;
 				state <= COMPUTE;
-		  end
-		end
-		else begin 
-			state <= WRITE;
-			offset<=0;
-			cur_we <= 1;
-			i <= 0;
-		end
+		 end
     end
 
-    /* this is the CRITICAL PATH "pecompute wt" */
+    /* 64 rounds of compression seem to depend on each other */
+	 /* w[15] is computed in the 'expansion' function */
     COMPUTE: begin
         if (tem < 64) begin
 				for (int n = 0; n < 15; n++) 
@@ -198,7 +177,9 @@ begin
 				h <= h + h7;
             i <= 0;
 				tem <= 0;
-				state <= BLOCK;
+				offset<= 0;
+				cur_we <= 1;
+				state <= WRITE;
         end
     end
 	 
@@ -206,7 +187,6 @@ begin
     // Write the final computed hash values into 'mem_write_data' to 
     // pass values to top module: bitcoin_hash.sv
     WRITE: begin
-			//cur_addr <= output_addr;
 			if(i < 8) begin
 				case(i)
 					0: mem_write_data[i] <= h0;
@@ -219,7 +199,6 @@ begin
 					7: mem_write_data[i] <= h7;
 				endcase 
 				i <= i + 1'b1;
-				//offset <= i;
 				state <= WRITE;
 			end
 			else 

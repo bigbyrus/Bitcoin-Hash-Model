@@ -47,7 +47,7 @@ simplified_sha256 sha256_phase1(
   .mem_read_data(w[0]),
   .h_in(h_ini),
   .done(done1[0]),
-  .mem_write_data(h[0])
+  .mem_write_data(h_phase1)
 );					
 			
 genvar q;
