@@ -38,11 +38,11 @@ The top-level module (`bitcoin_hash.sv`) instantiates `simplified_sha256` multip
 ### Reduced SHA-256 Logic, Second Iteration
 
 <p>
-    Logic utilization : 95 %
-        Combinational ALUTs : 18,923 / 36,100 ( 52 % )
-        Memory ALUTs : 0 / 18,050 ( 0 % )
-        Dedicated logic registers : 27,744 / 36,100 ( 77 % )
-    Total registers : 27744
+    Logic utilization : 95 %<br>
+        Combinational ALUTs : 18,923 / 36,100 ( 52 % )<br>
+        Memory ALUTs : 0 / 18,050 ( 0 % )<br>
+        Dedicated logic registers : 27,744 / 36,100 ( 77 % )<br>
+    Total registers : 27744<br>
 </p>
 <p>
     +--------------------------------------------------+<br>
