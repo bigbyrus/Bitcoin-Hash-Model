@@ -11,17 +11,20 @@ The top-level module (`bitcoin_hash.sv`) instantiates `simplified_sha256` multip
 ---
 
 ### Statistics on First Iteration
+<p>
+    Logic utilization : 95 %<br>
+        Combinational ALUTs : 18,956 / 36,100 ( 53 % )<br>
+        Memory ALUTs : 0 / 18,050 ( 0 % )<br>
+        Dedicated logic registers : 27,762 / 36,100 ( 77 % )<br>
+    Total registers : 27762<br>
+</p>
 
-Logic utilization : 95 %
-    Combinational ALUTs : 18,956 / 36,100 ( 53 % )
-    Memory ALUTs : 0 / 18,050 ( 0 % )
-    Dedicated logic registers : 27,762 / 36,100 ( 77 % )
-Total registers : 27762
-
-+--------------------------------------------------+
-; Slow 900mV 100C Model Fmax Summary               ;
-+------------+-----------------+------------+------+
-; Fmax       ; Restricted Fmax ; Clock Name ; Note ;
-+------------+-----------------+------------+------+
-; 116.59 MHz ; 116.59 MHz      ; clk        ;      ;
-+------------+-----------------+------------+------+
+<p>
+    +--------------------------------------------------+<br>
+    ; Slow 900mV 100C Model Fmax Summary               ;<br>
+    +------------+-----------------+------------+------+<br>
+    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;<br>
+    +------------+-----------------+------------+------+<br>
+    ; 116.59 MHz ; 116.59 MHz      ; clk        ;      ;<br>
+    +------------+-----------------+------------+------+<br>
+</p>
