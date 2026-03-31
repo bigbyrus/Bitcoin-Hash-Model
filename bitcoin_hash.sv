@@ -305,5 +305,3 @@ begin
  end
  assign done = (state == IDLE);
 endmodule
-
-

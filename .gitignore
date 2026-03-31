@@ -4,6 +4,8 @@ simulation
 work
 bitcoin_hash.cr.mti
 bitcoin_hash.mpf
+bitcoin-hash.cr.mti
+bitcoin-hash.mpf
 bitcoin_hash.qpf
 bitcoin_hash.qsf
 bitcoin_hash.qws

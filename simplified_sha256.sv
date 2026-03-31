@@ -1,4 +1,4 @@
-module simplified_sha256 #(parameter integer NUM_OF_WORDS = 16)(
+module simplified_sha256(
     input  logic        clk, reset_n, start,
     input  logic [15:0] message_addr, output_addr,
     input  logic [31:0] mem_read_data[15:0],
@@ -9,21 +9,18 @@ module simplified_sha256 #(parameter integer NUM_OF_WORDS = 16)(
 );
 
 // FSM state variables 
-enum logic [2:0] {IDLE, WAIT, READ, BLOCK, COMPUTE, WRITE} state;
+enum logic [2:0] {IDLE, WAIT, READ, BLOCK, COMPUTE, SHA, WRITE} state;
 
 // Local variables
 logic [31:0] w[64];
 logic [31:0] message[32];
-logic [31:0] wt;
 logic [31:0] h0, h1, h2, h3, h4, h5, h6, h7;
 logic [31:0] a, b, c, d, e, f, g, h;
-logic [ 7:0] i, j, tem;
+logic [ 7:0] i;
 logic [15:0] offset;
-logic [ 7:0] num_blocks;
 logic        cur_we;
 logic [15:0] cur_addr;
 logic [31:0] cur_write_data;
-logic [512:0] memory_block;
 logic [31:0] s1, s0;
 
 // SHA256 K constants
@@ -38,15 +35,6 @@ parameter int k[0:63] = '{
    32'h748f82ee,32'h78a5636f,32'h84c87814,32'h8cc70208,32'h90befffa,32'ha4506ceb,32'hbef9a3f7,32'hc67178f2
 };
 
-
-/* Determine Number of Blocks based on Number of Words */
-function logic [15:0] determine_num_blocks(input logic [31:0] size);
-	begin
-		determine_num_blocks = (size + 15) / 16;
-	end
-endfunction
-
-assign num_blocks = determine_num_blocks(NUM_OF_WORDS); 
 
 /* SHA256 hash round, updates a,b,c,d,e,f,g and h */
 function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
@@ -84,12 +72,12 @@ function logic [31:0] rightrotate(input logic [31:0] x,
    rightrotate = (x >> r) | (x << (32 - r));
 endfunction
 
-/* Hard Coded Word Expansion for t==16*/
+/* Word Expansion */
 function logic [31:0] expansion;
 
-	s0 = rightrotate(w[1], 7) ^ rightrotate(w[1], 18) ^ (w[1] >> 3);
-   s1 = rightrotate(w[14], 17) ^ rightrotate(w[14], 19) ^ (w[14] >> 10);
-   expansion = w[0] + s0 + w[9] + s1;
+	s0 = rightrotate(w[i-15], 7) ^ rightrotate(w[i-15], 18) ^ (w[i-15] >> 3);
+   s1 = rightrotate(w[i-2], 17) ^ rightrotate(w[i-2], 19) ^ (w[i-2] >> 10);
+   expansion = w[i-16] + s0 + w[i-7] + s1;
 	
 endfunction
 				
@@ -126,15 +114,13 @@ begin
 
 		 offset <= 16'b0;
 		 i <= 8'b0;
-		 j <= 8'b0;
-		 tem <= 8'b0;
 		 state <= BLOCK;
        end
     end
 	 
 
 	 /* fill first 16 words from "mem_read_data" into "w" array 		 */
-	 /* Proceed to COMPUTE state to obtain hash of the 512-bit block 	 */
+	 /* Proceed to COMPUTE state to complete WORD EXPANSION step   	 */
     BLOCK: begin
        if(i < 16) begin
 			w[i] <= mem_read_data[i];
@@ -142,23 +128,32 @@ begin
 			state <= BLOCK;
 		 end
 		 else begin
-				i <= 0;
 				state <= COMPUTE;
 		 end
     end
 
-    /* 64 rounds of compression seem to depend on each other */
-	 /* w[15] is computed in the 'expansion' function */
+
+	 /* perform WORD EXPANSION by expanding the */
+	 /* w[] array from 16 words to 64 words 	  */
     COMPUTE: begin
-        if (tem < 64) begin
-				for (int n = 0; n < 15; n++) 
-					w[n] <= w[n+1];
-				w[15] <= expansion;
-				{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, w[0], tem);
-				tem <= tem + 1'b1;
+        if(i < 64) begin
+				w[i] <= expansion;
+				i <= i + 1'b1;
 				state <= COMPUTE;
-		  end 
+		  end
 		  else begin
+				i <= 0;
+				state <= SHA;
+		  end
+    end
+	 
+	 /* perform 64 SHA-256 operations */
+	 SHA: begin
+			if(i<64) begin
+				{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, w[i], i);
+				i <= i + 1'b1;
+				state <= SHA;
+			end else begin
 				h0 <= a + h0;
 				h1 <= b + h1;
 				h2 <= c + h2;
@@ -176,12 +171,11 @@ begin
 				g <= g + h6;
 				h <= h + h7;
             i <= 0;
-				tem <= 0;
 				offset<= 0;
 				cur_we <= 1;
 				state <= WRITE;
-        end
-    end
+			end
+	 end
 	 
 
     // Write the final computed hash values into 'mem_write_data' to 
