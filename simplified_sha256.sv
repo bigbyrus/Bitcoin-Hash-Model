@@ -60,21 +60,14 @@ assign mem_addr = cur_addr + offset;
 assign mem_we = cur_we;
 
 
-// Right Rotation Example : right rotate input x by r
-// Lets say input x = 1111 ffff 2222 3333 4444 6666 7777 8888
-// lets say r = 4
-// x >> r  will result in : 0000 1111 ffff 2222 3333 4444 6666 7777 
-// x << (32-r) will result in : 8888 0000 0000 0000 0000 0000 0000 0000
-// final right rotate expression is = (x >> r) | (x << (32-r));
-// (0000 1111 ffff 2222 3333 4444 6666 7777) | (8888 0000 0000 0000 0000 0000 0000 0000)
-// final value after right rotate = 8888 1111 ffff 2222 3333 4444 6666 7777
-// Right rotation function
+/* Right rotation function: right rotate input x by r */
 function logic [31:0] rightrotate(input logic [31:0] x,
                                   input logic [ 7:0] r);
    rightrotate = (x >> r) | (x << (32 - r));
 endfunction
 
 
+/* expand the w[] array (word expansion) */
 function logic [31:0] expansion;
 
 	s0 = rightrotate(w[1], 7) ^ rightrotate(w[1], 18) ^ (w[1] >> 3);
@@ -82,8 +75,8 @@ function logic [31:0] expansion;
    expansion = w[0] + s0 + w[9] + s1;
 	
 endfunction
-				
-/* SHA-256 FSM 																				*/
+
+
 /* Get a BLOCK from the top module, COMPUTE output hash using SHA256_op    */
 /* Write back hash value back to top module											*/
 always_ff @(posedge clk, negedge reset_n)
@@ -95,7 +88,7 @@ begin
   case (state)
     /* Initialize hash values h0 to h7 and a to h,	   */
 	 /* Use h_in provided by top module 					*/
-	 /* All other variables are set to zero 			   */
+	 /* Initialize all other variables 						*/
     IDLE: begin 
        if(start) begin
 		 
@@ -119,6 +112,7 @@ begin
 		 cur_addr <= 16'b0;
 		 offset <= 16'b0;
 		 i <= 8'b0;
+		 tem <= 8'b0;
 		 sha_op <= 1'b1;
 		 state <= BLOCK;
        end
@@ -138,20 +132,30 @@ begin
     end
 
 
+	 /* perform 64 SHA-256 rounds */
     COMPUTE: begin
         if(tem < 64) begin
+		  
+				/* word expansion */
 				if(sha_op) begin
 					wt <= w[0];
 					for(int n = 0; n < 15; n++)
 						w[n] <= w[n+1];
 					w[15] <= expansion;
-					sha_op <= 0;
-				end else begin
+					sha_op <= 1'b0;
+					state <= COMPUTE;
+				end
+				
+				/* sha256 operation */
+				else begin
 					{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, wt, tem);
 					tem <= tem + 1'b1;
+					sha_op <= 1'b1;
 					state <= COMPUTE;
 				end
 		  end
+		  
+		  /* update H0-H7 and A-H vectors */
 		  else begin
 				h0 <= a + h0;
 				h1 <= b + h1;
@@ -175,8 +179,7 @@ begin
         end
     end
 
-    // Write the final computed hash values into 'mem_write_data' to 
-    // pass values to top module: bitcoin_hash.sv
+
     WRITE: begin
 			if(i < 8) begin
 				case(i)
