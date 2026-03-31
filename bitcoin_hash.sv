@@ -90,6 +90,8 @@ begin
 			j <= 0;
 			n <= 0;
 			
+			/* initialize the initial hash constants for   */
+			/* the first phase of the Bitcoin hash process */
 			h_ini[0] <= 32'h6a09e667;
 			h_ini[1] <= 32'hbb67ae85;
 			h_ini[2] <= 32'h3c6ef372;
@@ -109,9 +111,10 @@ begin
 	
 	/* Populate message array with two n-bit blocks (NO NONCE VALUES ADDED) */
 	READ: begin
-		/* Read first 20 words, store in message array */
+		/* Read purely message data, store in message array */
 		if(offset < 19) begin
 				message[offset] <= mem_read_data;
+				/* fill out message array with zeros */
 				if(offset + 20 < 32)
 					message[offset + 20] <= 32'h0;
 				offset <= offset + 1'b1;
@@ -142,10 +145,13 @@ begin
 	end
 	
 	SET2: begin
-
 	  start0 <= 0;
+	  
 	  /* wait until Phase 1 output hash values are produced */
 	  if(done1[0] == 1) begin
+	  
+	  /* store the 2nd 512-bit block 16 times, each with a */
+	  /* different nonce value */
 		for(j = 0; j<16; j++) begin
 			for(i = 0; i<16; i++) begin
 				if(i != 3)
@@ -153,6 +159,7 @@ begin
 			end
 		end
 		
+		/* add nonce values */
 		w[0][3] <= 32'd0;
 		w[1][3] <= 32'd1;
 		w[2][3] <= 32'd2;
@@ -170,10 +177,10 @@ begin
 		w[14][3] <= 32'd14;
 		w[15][3] <= 32'd15;
 		
-		
 		for(n = 0; n<8; n++) begin
 			h_ini[n] <= h_phase1[n];
 		end
+		
 		i <= 0;
 		j <= 0;
 		state <= PHASE2;
@@ -191,30 +198,38 @@ begin
 		state <= SET3;
 	end
 	
-	/* Once 16 iterations of block 2 have been hashed,  */
-	/* Create 16 new 512-bit blocks using the 16 output */
-	/* hashes generated from Phase 2 */
 	SET3: begin
 	 start1 <= 0;
+	 
+	 /* wait until all Phase 2 output hashes are produced */
 	 if(done1[16] == 1) begin
+	 
+		/* set w array to hold all 16 output hashes from Phase 2 */
 		for(j = 0; j<16; j++) begin
 			for(i = 0; i<16; i++) begin
+			
+				/* store the 16 256-bit hashes */
 				if(i < 8) begin
 					w[j][i] <= h[j][i];
 				end
+				
+				/* add padding directly after 256-bit hash */
 				else if(i == 8)begin
 					w[j][i] <= 32'h80000000;
 				end
+				
+				/* store the size of the block using the last 32 bits */
 				else if(i == 15) begin
 					w[j][i] <= 32'd256;
 				end
+				/* pad with zeros */
 				else begin
 					w[j][i] <= 32'h0;
 				end
 			end
 		end
 		
-	/* Restore Hash Constants to their original values */
+		/* reset the hash constants to the fixed hash constants */
 		h_ini[0] <= 32'h6a09e667;
 		h_ini[1] <= 32'hbb67ae85;
 		h_ini[2] <= 32'h3c6ef372;
@@ -234,7 +249,8 @@ begin
 		state <= SET3;
 	end
 	
-	
+	/* begin the 16 generated instances of SHA-256 */
+	/* this will hash all 16 output hashes from Phase2 */
 	PHASE3: begin
 		start1 <= 1;
 		state <= WAIT3;
@@ -244,6 +260,7 @@ begin
 		state <= SET4;
 	end
 	
+	/* once all 16 hashes are produced, begin to write to memory */
 	SET4: begin
 	 start1 <= 0;
 	 if(done1[1] == 1) begin
@@ -254,7 +271,8 @@ begin
 		state <= SET4;
 	end
 	
-	/* Write only the first word of each of the 16 generated output hashes to memory*/
+	/* write the first word of each of the 16 final output hashes */
+	/* to verify functionality of the digital design */
 	WRITE: begin
 	cur_addr <= output_addr;
 		if(i < 16) begin
@@ -287,5 +305,3 @@ begin
  end
  assign done = (state == IDLE);
 endmodule
-
-

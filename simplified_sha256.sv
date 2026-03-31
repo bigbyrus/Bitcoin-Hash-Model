@@ -12,15 +12,14 @@ module simplified_sha256 #(parameter integer NUM_OF_WORDS = 16)(
 enum logic [2:0] {IDLE, WAIT, READ, BLOCK, COMPUTE, WRITE} state;
 
 // Local variables
-logic [31:0] w[64];
+logic [31:0] w[16];
 logic [31:0] message[32];
 logic [31:0] wt;
 logic [31:0] h0, h1, h2, h3, h4, h5, h6, h7;
 logic [31:0] a, b, c, d, e, f, g, h;
-logic [ 7:0] i, j, tem;
+logic [ 7:0] i, tem;
 logic [15:0] offset;
-logic [ 7:0] num_blocks;
-logic        cur_we;
+logic        cur_we, sha_op;
 logic [15:0] cur_addr;
 logic [31:0] cur_write_data;
 logic [31:0] s1, s0;
@@ -38,14 +37,6 @@ parameter int k[0:63] = '{
 };
 
 
-/* Determine Number of Blocks based on Number of Words */
-function logic [15:0] determine_num_blocks(input logic [31:0] size);
-	begin
-		determine_num_blocks = (size + 15) / 16;
-	end
-endfunction  
-
-assign num_blocks = determine_num_blocks(NUM_OF_WORDS); 
 
 /* SHA256 hash round, updates a,b,c,d,e,f,g and h */
 function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
@@ -67,24 +58,16 @@ endfunction
 assign mem_clk = clk;
 assign mem_addr = cur_addr + offset;
 assign mem_we = cur_we;
-//assign mem_write_data = cur_write_data;
 
 
-// Right Rotation Example : right rotate input x by r
-// Lets say input x = 1111 ffff 2222 3333 4444 6666 7777 8888
-// lets say r = 4
-// x >> r  will result in : 0000 1111 ffff 2222 3333 4444 6666 7777 
-// x << (32-r) will result in : 8888 0000 0000 0000 0000 0000 0000 0000
-// final right rotate expression is = (x >> r) | (x << (32-r));
-// (0000 1111 ffff 2222 3333 4444 6666 7777) | (8888 0000 0000 0000 0000 0000 0000 0000)
-// final value after right rotate = 8888 1111 ffff 2222 3333 4444 6666 7777
-// Right rotation function
+/* Right rotation function: right rotate input x by r */
 function logic [31:0] rightrotate(input logic [31:0] x,
                                   input logic [ 7:0] r);
    rightrotate = (x >> r) | (x << (32 - r));
 endfunction
 
-/* Hard Coded Word Expansion for t==16*/
+
+/* expand the w[] array (word expansion) */
 function logic [31:0] expansion;
 
 	s0 = rightrotate(w[1], 7) ^ rightrotate(w[1], 18) ^ (w[1] >> 3);
@@ -92,8 +75,8 @@ function logic [31:0] expansion;
    expansion = w[0] + s0 + w[9] + s1;
 	
 endfunction
-				
-/* SHA-256 FSM 																				*/
+
+
 /* Get a BLOCK from the top module, COMPUTE output hash using SHA256_op    */
 /* Write back hash value back to top module											*/
 always_ff @(posedge clk, negedge reset_n)
@@ -105,7 +88,7 @@ begin
   case (state)
     /* Initialize hash values h0 to h7 and a to h,	   */
 	 /* Use h_in provided by top module 					*/
-	 /* All other variables are set to zero 			   */
+	 /* Initialize all other variables 						*/
     IDLE: begin 
        if(start) begin
 		 
@@ -126,59 +109,53 @@ begin
 		 g <= h_in[6];
 		 h <= h_in[7];
 
+		 cur_addr <= 16'b0;
 		 offset <= 16'b0;
 		 i <= 8'b0;
-		 j <= 8'b0;
 		 tem <= 8'b0;
-		 state <= WAIT;
+		 sha_op <= 1'b1;
+		 state <= BLOCK;
        end
     end
 	 
-	 WAIT: begin
-		state <= BLOCK;
-	 end
-	 
-
-	 /* fill 16 words from "mem_read_data" into "w" array 		 		 */
-	 /* Proceed to COMPUTE state to obtain hash of the 512-bit block 	 */
+	 /* fill first 16 words from "mem_read_data" into "w" array 		 */
+	 /* Proceed to COMPUTE state to complete WORD EXPANSION step   	 */
     BLOCK: begin
-		if(j < num_blocks) begin
-        if (i < 16) begin
-				if(j == 0)
-					w[i] <= mem_read_data[i];
-				else 
-					w[i] <= mem_read_data[i + 16];
-				i <= i + 1'b1;
-				state <= BLOCK;
-		  end
-		  else begin
-				j <= j + 1'b1;
-				i <= 0;
+       if(i < 16) begin
+			w[i] <= mem_read_data[i];
+			i <= i + 1'b1;
+			state <= BLOCK;
+		 end
+		 else begin
 				state <= COMPUTE;
-		  end
-		end
-		else begin 
-			state <= WRITE;
-			offset<=0;
-			cur_we <= 1;
-			i <= 0;
-		end
+		 end
     end
 
-    /* Go back to BLOCK stage to check if there are still message blocks available  */
-    /* Otherwise, move to WRITE stage																*/
+
+	 /* perform 64 SHA-256 rounds */
     COMPUTE: begin
-        if (tem < 64) begin
-	 /* Shift the message buffer left by one word to discard the oldest word			  */
-    /* and make room for the newly expanded word at the end (w[15]). 					  */
-	 /* This efficiently executes SHA-256's 64-round processing, conserving resources  */
-				for (int n = 0; n < 15; n++) 
-					w[n] <= w[n+1];
-				w[15] <= expansion;
-				{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, w[0], tem);
-				tem <= tem + 1'b1;
-				state <= COMPUTE;
-		  end 
+        if(tem < 64) begin
+		  
+				/* word expansion */
+				if(sha_op) begin
+					wt <= w[0];
+					for(int n = 0; n < 15; n++)
+						w[n] <= w[n+1];
+					w[15] <= expansion;
+					sha_op <= 1'b0;
+					state <= COMPUTE;
+				end
+				
+				/* sha256 operation */
+				else begin
+					{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, wt, tem);
+					tem <= tem + 1'b1;
+					sha_op <= 1'b1;
+					state <= COMPUTE;
+				end
+		  end
+		  
+		  /* update H0-H7 and A-H vectors */
 		  else begin
 				h0 <= a + h0;
 				h1 <= b + h1;
@@ -198,12 +175,11 @@ begin
 				h <= h + h7;
             i <= 0;
 				tem <= 0;
-				state <= BLOCK;
+				state <= WRITE;
         end
-    end 
+    end
 
-    // Write the final computed hash values into 'mem_write_data' to 
-    // pass values to top module: bitcoin_hash.sv
+
     WRITE: begin
 			if(i < 8) begin
 				case(i)
