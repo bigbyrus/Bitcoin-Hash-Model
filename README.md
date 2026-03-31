@@ -56,3 +56,15 @@ The top-level module (`bitcoin_hash.sv`) instantiates `simplified_sha256` multip
 <p>
     Cycles: 342
 </p>
+
+
+### Attempted to Pipeline Design, Third Iteration
+<p>
+    +--------------------------------------------------+<br>
+    ; Slow 900mV 100C Model Fmax Summary               ;<br>
+    +------------+-----------------+------------+------+<br>
+    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;<br>
+    +------------+-----------------+------------+------+<br>
+    ; 129.79 MHz ; 129.79 MHz      ; clk        ;      ;<br>
+    +------------+-----------------+------------+------+<br>
+</p>

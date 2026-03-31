@@ -1,4 +1,4 @@
-module simplified_sha256(
+module simplified_sha256 #(parameter integer NUM_OF_WORDS = 16)(
     input  logic        clk, reset_n, start,
     input  logic [15:0] message_addr, output_addr,
     input  logic [31:0] mem_read_data[15:0],
@@ -9,16 +9,17 @@ module simplified_sha256(
 );
 
 // FSM state variables 
-enum logic [2:0] {IDLE, WAIT, READ, BLOCK, COMPUTE, SHA, WRITE} state;
+enum logic [2:0] {IDLE, WAIT, READ, BLOCK, COMPUTE, WRITE} state;
 
 // Local variables
-logic [31:0] w[64];
+logic [31:0] w[16];
 logic [31:0] message[32];
+logic [31:0] wt;
 logic [31:0] h0, h1, h2, h3, h4, h5, h6, h7;
 logic [31:0] a, b, c, d, e, f, g, h;
-logic [ 7:0] i;
+logic [ 7:0] i, tem;
 logic [15:0] offset;
-logic        cur_we;
+logic        cur_we, sha_op;
 logic [15:0] cur_addr;
 logic [31:0] cur_write_data;
 logic [31:0] s1, s0;
@@ -34,6 +35,7 @@ parameter int k[0:63] = '{
    32'h19a4c116,32'h1e376c08,32'h2748774c,32'h34b0bcb5,32'h391c0cb3,32'h4ed8aa4a,32'h5b9cca4f,32'h682e6ff3,
    32'h748f82ee,32'h78a5636f,32'h84c87814,32'h8cc70208,32'h90befffa,32'ha4506ceb,32'hbef9a3f7,32'hc67178f2
 };
+
 
 
 /* SHA256 hash round, updates a,b,c,d,e,f,g and h */
@@ -72,18 +74,18 @@ function logic [31:0] rightrotate(input logic [31:0] x,
    rightrotate = (x >> r) | (x << (32 - r));
 endfunction
 
-/* Word Expansion */
+
 function logic [31:0] expansion;
 
-	s0 = rightrotate(w[i-15], 7) ^ rightrotate(w[i-15], 18) ^ (w[i-15] >> 3);
-   s1 = rightrotate(w[i-2], 17) ^ rightrotate(w[i-2], 19) ^ (w[i-2] >> 10);
-   expansion = w[i-16] + s0 + w[i-7] + s1;
+	s0 = rightrotate(w[1], 7) ^ rightrotate(w[1], 18) ^ (w[1] >> 3);
+   s1 = rightrotate(w[14], 17) ^ rightrotate(w[14], 19) ^ (w[14] >> 10);
+   expansion = w[0] + s0 + w[9] + s1;
 	
 endfunction
 				
 /* SHA-256 FSM 																				*/
-/* Get a BLOCK from the memory, COMPUTE Hash output using SHA256 function  */
-/* Write back hash value back to memory    											*/
+/* Get a BLOCK from the top module, COMPUTE output hash using SHA256_op    */
+/* Write back hash value back to top module											*/
 always_ff @(posedge clk, negedge reset_n)
 begin
   if (!reset_n) begin
@@ -91,7 +93,9 @@ begin
   end 
   else 
   case (state)
-    /* Initialize hash values h0 to h7 and a to h */
+    /* Initialize hash values h0 to h7 and a to h,	   */
+	 /* Use h_in provided by top module 					*/
+	 /* All other variables are set to zero 			   */
     IDLE: begin 
        if(start) begin
 		 
@@ -112,13 +116,14 @@ begin
 		 g <= h_in[6];
 		 h <= h_in[7];
 
+		 cur_addr <= 16'b0;
 		 offset <= 16'b0;
 		 i <= 8'b0;
+		 sha_op <= 1'b1;
 		 state <= BLOCK;
        end
     end
 	 
-
 	 /* fill first 16 words from "mem_read_data" into "w" array 		 */
 	 /* Proceed to COMPUTE state to complete WORD EXPANSION step   	 */
     BLOCK: begin
@@ -133,27 +138,21 @@ begin
     end
 
 
-	 /* perform WORD EXPANSION by expanding the */
-	 /* w[] array from 16 words to 64 words 	  */
     COMPUTE: begin
-        if(i < 64) begin
-				w[i] <= expansion;
-				i <= i + 1'b1;
-				state <= COMPUTE;
+        if(tem < 64) begin
+				if(sha_op) begin
+					wt <= w[0];
+					for(int n = 0; n < 15; n++)
+						w[n] <= w[n+1];
+					w[15] <= expansion;
+					sha_op <= 0;
+				end else begin
+					{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, wt, tem);
+					tem <= tem + 1'b1;
+					state <= COMPUTE;
+				end
 		  end
 		  else begin
-				i <= 0;
-				state <= SHA;
-		  end
-    end
-	 
-	 /* perform 64 SHA-256 operations */
-	 SHA: begin
-			if(i<64) begin
-				{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, w[i], i);
-				i <= i + 1'b1;
-				state <= SHA;
-			end else begin
 				h0 <= a + h0;
 				h1 <= b + h1;
 				h2 <= c + h2;
@@ -171,12 +170,10 @@ begin
 				g <= g + h6;
 				h <= h + h7;
             i <= 0;
-				offset<= 0;
-				cur_we <= 1;
+				tem <= 0;
 				state <= WRITE;
-			end
-	 end
-	 
+        end
+    end
 
     // Write the final computed hash values into 'mem_write_data' to 
     // pass values to top module: bitcoin_hash.sv
