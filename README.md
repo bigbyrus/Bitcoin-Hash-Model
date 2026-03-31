@@ -56,7 +56,7 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
 ---
 
 ### Attempted to Pipeline Design, Third Iteration
-    In this iteration, I separated the word expansion step from the SHA-256 operation step, hoping to reduce the 
+In this iteration, I separated the word expansion step from the SHA-256 operation step, hoping to reduce the 
 critical path of this system so that the design could run at a higher clock frequency.
 <p>
     +--------------------------------------------------+<br>
@@ -78,6 +78,6 @@ critical path of this system so that the design could run at a higher clock freq
     Total registers : 28290<br>
 </p>
 
-    Attempting to pipeline the design in this way caused the cycles to increase significantly while not offering much
+Attempting to pipeline the design in this way caused the cycles to increase significantly while not offering much
 improvement to the clock frequency. This lets me know that **pipelining the SHA-256 operation itself** will give me a more
 efficient design.
