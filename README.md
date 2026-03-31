@@ -1,5 +1,3 @@
-# Bitcoin Hash Pipeline — FSM Design in SystemVerilog
-
 ## Overview
 This project implements a Bitcoin Hash model in SystemVerilog built around the, slightly modified, `simplified_sha256.sv` module. 
 [My SHA-256 hardware module](https://github.com/bigbyrus/SHA-256) was modified so that it left all memory accesses to be done by the top module, `bitcoin_hash.sv`. 
@@ -19,12 +17,6 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
     +------------+-----------------+------------+------+<br>
 </p>
 <p>
-    Cycles: 348
-
-    Delay: 2.98 (microseconds)
-    Delay*Area: 139.44 (ms*Area)    
-</p>
-<p>
     Logic utilization : 95 %<br>
         Combinational ALUTs : 18,956 / 36,100 ( 53 % )<br>
         Memory ALUTs : 0 / 18,050 ( 0 % )<br>
@@ -32,6 +24,10 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
     Total registers : 27762<br>
 </p>
 
+    Cycles: 348
+    Delay: 2.98 (microseconds)
+    Delay*Area: 139.44 (ms*Area)
+    
 ---
 
 ### Reduced SHA-256 Logic, Second Iteration
@@ -46,12 +42,6 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
     +------------+-----------------+------------+------+<br>
 </p>
 <p>
-    Cycles: 342
-
-    Delay: 2.79 (microseconds)
-    Delay*Area: 130.54 (ms*Area)
-</p>
-<p>
     Logic utilization : 95 %<br>
         Combinational ALUTs : 18,923 / 36,100 ( 52 % )<br>
         Memory ALUTs : 0 / 18,050 ( 0 % )<br>
@@ -59,10 +49,14 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
     Total registers : 27744<br>
 </p>
 
+    Cycles: 342
+    Delay: 2.79 (microseconds)
+    Delay*Area: 130.54 (ms*Area)
+
 ---
 
 ### Attempted to Pipeline Design, Third Iteration
-    In this iteration, I separated the word expansion step from the SHA-256 operation step, hoping to reduce the 
+In this iteration, I separated the word expansion step from the SHA-256 operation step, hoping to reduce the 
 critical path of this system so that the design could run at a higher clock frequency.
 <p>
     +--------------------------------------------------+<br>
@@ -74,12 +68,6 @@ critical path of this system so that the design could run at a higher clock freq
     +------------+-----------------+------------+------+<br>
 </p>
 <p>
-    Cycles: 534
-
-    Delay: 4.11 (microseconds)
-    Delay*Area: 195.62 (ms*Area)
-</p>
-<p>
     Logic utilization : 95 %<br>
         Combinational ALUTs : 18,931 / 36,100 ( 52 % )<br>
         Memory ALUTs : 0 / 18,050 ( 0 % )<br>
@@ -87,6 +75,10 @@ critical path of this system so that the design could run at a higher clock freq
     Total registers : 28290<br>
 </p>
 
-    Attempting to pipeline the design in this way caused the cycles to increase significantly while not offering much
+    Cycles: 534
+    Delay: 4.11 (microseconds)
+    Delay*Area: 195.62 (ms*Area)
+
+Attempting to pipeline the design in this way caused the cycles to increase significantly while not offering much
 improvement to the clock frequency. This lets me know that **pipelining the SHA-256 operation itself** will give me a more
 efficient design. 
