@@ -20,6 +20,9 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
 </p>
 <p>
     Cycles: 348
+
+    Delay: 2.98 (microseconds)
+    Delay*Area: 139.44 (ms*Area)    
 </p>
 <p>
     Logic utilization : 95 %<br>
@@ -44,6 +47,9 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
 </p>
 <p>
     Cycles: 342
+
+    Delay: 2.79 (microseconds)
+    Delay*Area: 130.54 (ms*Area)
 </p>
 <p>
     Logic utilization : 95 %<br>
@@ -69,6 +75,9 @@ critical path of this system so that the design could run at a higher clock freq
 </p>
 <p>
     Cycles: 534
+
+    Delay: 4.11 (microseconds)
+    Delay*Area: 195.62 (ms*Area)
 </p>
 <p>
     Logic utilization : 95 %<br>
@@ -80,4 +89,4 @@ critical path of this system so that the design could run at a higher clock freq
 
     Attempting to pipeline the design in this way caused the cycles to increase significantly while not offering much
 improvement to the clock frequency. This lets me know that **pipelining the SHA-256 operation itself** will give me a more
-efficient design.
+efficient design. 
