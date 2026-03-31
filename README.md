@@ -1,4 +1,4 @@
-# Bitcoin Hash Pipeline — FSM Design in SystemVerilog
+# Bitcoin Hashing using SHA256
 
 ## Overview
 This project implements a Bitcoin Hash model in SystemVerilog built around the, slightly modified, `simplified_sha256.sv` module. 
