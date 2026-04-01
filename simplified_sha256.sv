@@ -9,17 +9,16 @@ module simplified_sha256 #(parameter integer NUM_OF_WORDS = 16)(
 );
 
 // FSM state variables 
-enum logic [2:0] {IDLE, WAIT, READ, BLOCK, COMPUTE, WRITE} state;
+enum logic [1:0] {IDLE, BLOCK, COMPUTE, WRITE} state;
 
 // Local variables
 logic [31:0] w[16];
 logic [31:0] message[32];
-logic [31:0] wt;
 logic [31:0] h0, h1, h2, h3, h4, h5, h6, h7;
 logic [31:0] a, b, c, d, e, f, g, h;
 logic [ 7:0] i, tem;
 logic [15:0] offset;
-logic        cur_we, sha_op;
+logic        cur_we;
 logic [15:0] cur_addr;
 logic [31:0] cur_write_data;
 logic [31:0] s1, s0;
@@ -67,7 +66,6 @@ function logic [31:0] rightrotate(input logic [31:0] x,
 endfunction
 
 
-/* expand the w[] array (word expansion) */
 function logic [31:0] expansion;
 
 	s0 = rightrotate(w[1], 7) ^ rightrotate(w[1], 18) ^ (w[1] >> 3);
@@ -79,105 +77,69 @@ endfunction
 
 /* Get a BLOCK from the top module, COMPUTE output hash using SHA256_op    */
 /* Write back hash value back to top module											*/
-always_ff @(posedge clk, negedge reset_n)
-begin
-  if (!reset_n) begin
-    state <= IDLE;
-  end 
-  else 
-  case (state)
-    /* Initialize hash values h0 to h7 and a to h,	   */
-	 /* Use h_in provided by top module 					*/
-	 /* Initialize all other variables 						*/
-    IDLE: begin 
-       if(start) begin
-		 
-       h0 <= h_in[0];  
-		 h1 <= h_in[1];
-		 h2 <= h_in[2];
-		 h3 <= h_in[3];
-		 h4 <= h_in[4];
-		 h5 <= h_in[5];
-		 h6 <= h_in[6];
-		 h7 <= h_in[7];
-		 a <= h_in[0];
-		 b <= h_in[1];
-		 c <= h_in[2];
-		 d <= h_in[3];
-		 e <= h_in[4];
-		 f <= h_in[5];
-		 g <= h_in[6];
-		 h <= h_in[7];
+always_ff @(posedge clk, negedge reset_n) begin
+	if(!reset_n) begin
+		state <= IDLE;
+	end else 
+	case (state)
+		IDLE: begin 
+			if(start) begin
+				h0 <= h_in[0];  
+				h1 <= h_in[1];
+				h2 <= h_in[2];
+				h3 <= h_in[3];
+				h4 <= h_in[4];
+				h5 <= h_in[5];
+				h6 <= h_in[6];
+				h7 <= h_in[7];
+				a <= h_in[0];
+				b <= h_in[1];
+				c <= h_in[2];
+				d <= h_in[3];
+				e <= h_in[4];
+				f <= h_in[5];
+				g <= h_in[6];
+				h <= h_in[7];
 
-		 cur_addr <= 16'b0;
-		 offset <= 16'b0;
-		 i <= 8'b0;
-		 tem <= 8'b0;
-		 sha_op <= 1'b1;
-		 state <= BLOCK;
-       end
-    end
+				cur_addr <= 16'b0;
+				offset <= 16'b0;
+				i <= 8'b0;
+				tem <= 8'b0;
+				cur_we <= 0;
+				state <= BLOCK;
+			end
+		end
+		
+		BLOCK: begin
+			for(int n = 0; n < 16; n++)
+				w[n] = mem_read_data[n];
+			state <= COMPUTE;
+		end
+
 	 
-	 /* fill first 16 words from "mem_read_data" into "w" array 		 */
-	 /* Proceed to COMPUTE state to complete WORD EXPANSION step   	 */
-    BLOCK: begin
-       if(i < 16) begin
-			w[i] <= mem_read_data[i];
-			i <= i + 1'b1;
-			state <= BLOCK;
-		 end
-		 else begin
-				state <= COMPUTE;
-		 end
-    end
-
-
-	 /* perform 64 SHA-256 rounds */
-    COMPUTE: begin
-        if(tem < 64) begin
-		  
-				/* word expansion */
-				if(sha_op) begin
-					wt <= w[0];
-					for(int n = 0; n < 15; n++)
-						w[n] <= w[n+1];
-					w[15] <= expansion;
-					sha_op <= 1'b0;
-					state <= COMPUTE;
-				end
-				
-				/* sha256 operation */
-				else begin
-					{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, wt, tem);
-					tem <= tem + 1'b1;
-					sha_op <= 1'b1;
-					state <= COMPUTE;
-				end
-		  end
-		  
-		  /* update H0-H7 and A-H vectors */
-		  else begin
-				h0 <= a + h0;
-				h1 <= b + h1;
-				h2 <= c + h2;
-				h3 <= d + h3;
-				h4 <= e + h4;
-				h5 <= f + h5;
-				h6 <= g + h6;
-				h7 <= h + h7;
-				a <= a + h0;
-				b <= b + h1;
-				c <= c + h2;
-				d <= d + h3;
-				e <= e + h4;
-				f <= f + h5;
-				g <= g + h6;
-				h <= h + h7;
-            i <= 0;
-				tem <= 0;
-				state <= WRITE;
-        end
-    end
+	COMPUTE: begin
+		if(tem < 64) begin
+			for(int n = 0; n < 15; n++) 
+				w[n] <= w[n+1];
+			w[15] <= expansion;
+			{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, w[0], tem);
+			tem <= tem + 1'b1;
+			state <= COMPUTE;
+		end else begin
+			/* update H0-H7 vectors */
+			h0 <= a + h0;
+			h1 <= b + h1;
+			h2 <= c + h2;
+			h3 <= d + h3;
+			h4 <= e + h4;
+			h5 <= f + h5;
+			h6 <= g + h6;
+			h7 <= h + h7;
+			i <= 8'b0;
+			tem <= 8'b0;
+			state <= WRITE;
+		end
+	 end
 
 
     WRITE: begin
@@ -197,7 +159,6 @@ begin
 			end
 			else 
 				state <= IDLE;
-
     end
    endcase
   end
