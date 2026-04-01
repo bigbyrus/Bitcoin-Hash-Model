@@ -86,8 +86,8 @@ try to optimize the design in a more efficient way.
 <p>
     Cycles: 534
 
-    Delay: 4.11 (microseconds)
-    Delay*Area: 195.62 (ms*Area)
+    Delay: 2.17 (microseconds)
+    Delay*Area: 88.09 (ms*Area)
 </p>
 <p>
     Logic utilization : 95 %<br>
@@ -97,10 +97,7 @@ try to optimize the design in a more efficient way.
     Total registers : 27744<br>
 </p>
 
-    Cycles: 534
-    Delay: 4.11 (microseconds)
-    Delay*Area: 195.62 (ms*Area)
-
-    Attempting to pipeline the design in this way caused the cycles to increase significantly while not offering much
-improvement to the clock frequency. This lets me know that **pipelining the SHA-256 operation itself** will give me a more
-efficient design. 
+This iteration showed the mos improvement to FPGA resources and cycles. To do this I took advantage of
+the asynchronous read to save cycles, and I went back to limiting the w[] array to only 16 elements.
+In the previous iterations I attempted to complete the word expansion all at once, but this method would
+not fit on the FPGA I am using.
