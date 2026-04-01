@@ -84,10 +84,10 @@ try to optimize the design in a more efficient way.
     +------------+-----------------+------------+------+<br>
 </p>
 <p>
-    Cycles: 534
+    Cycles: 294
 
-    Delay: 4.11 (microseconds)
-    Delay*Area: 195.62 (ms*Area)
+    Delay: 2.18 (microseconds)
+    Delay*Area: 88.09 (ms*Area)
 </p>
 <p>
     Logic utilization : 95 %<br>
@@ -97,10 +97,13 @@ try to optimize the design in a more efficient way.
     Total registers : 27744<br>
 </p>
 
-    Cycles: 534
-    Delay: 4.11 (microseconds)
-    Delay*Area: 195.62 (ms*Area)
+---
 
-    Attempting to pipeline the design in this way caused the cycles to increase significantly while not offering much
-improvement to the clock frequency. This lets me know that **pipelining the SHA-256 operation itself** will give me a more
-efficient design. 
+### Pipelined Version, Fifth Iteration
+
+<p>
+    Cycles: 486
+
+    Delay:  (microseconds)
+    Delay*Area:  (ms*Area)
+</p>
