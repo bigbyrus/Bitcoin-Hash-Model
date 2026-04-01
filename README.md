@@ -107,3 +107,7 @@ try to optimize the design in a more efficient way.
     Delay:  (microseconds)
     Delay*Area:  (ms*Area)
 </p>
+This iteration showed the mos improvement to FPGA resources and cycles. To do this I took advantage of
+the asynchronous read to save cycles, and I went back to limiting the w[] array to only 16 elements.
+In the previous iterations I attempted to complete the word expansion all at once, but this method would
+not fit on the FPGA I am using.
