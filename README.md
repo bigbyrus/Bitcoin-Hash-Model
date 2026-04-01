@@ -61,9 +61,9 @@ computing this word expansion that can be executed all at once.
 
 <p>
     Logic utilization : 368 %<br>
-        Combinational ALUTs : 114,627 / 36,100 ( 52 % )<br>
-        Memory ALUTs : 0 / 18,050 ( 0 % )<br>
-        Dedicated logic registers : 19,038 / 36,100 ( 77 % )<br>
+        Combinational ALUTs : 114,627 / 36,100 <br>
+        Memory ALUTs : 0 / 18,050 <br>
+        Dedicated logic registers : 19,038 / 36,100 )<br>
     Total registers : 28290<br>
 </p>
 
@@ -91,23 +91,42 @@ try to optimize the design in a more efficient way.
 </p>
 <p>
     Logic utilization : 95 %<br>
-        Combinational ALUTs : 12,716 / 36,100 ( 52 % )<br>
+        Combinational ALUTs : 12,716 / 36,100 ( 34 % )<br>
         Memory ALUTs : 0 / 18,050 ( 0 % )<br>
         Dedicated logic registers : 27,744 / 36,100 ( 77 % )<br>
     Total registers : 27744<br>
 </p>
+This iteration showed the most improvement (so far) to FPGA resources and cycles. To do this I took advantage of
+the asynchronous read to save cycles, and I went back to limiting the w[] array to only 16 elements.
+In the previous iterations I attempted to complete the word expansion all at once, but this method would
+not fit on the FPGA I am using.
 
 ---
 
 ### Pipelined Version, Fifth Iteration
-
+<p>
+    +--------------------------------------------------+<br>
+    ; Slow 900mV 100C Model Fmax Summary               ;<br>
+    +------------+-----------------+------------+------+<br>
+    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;<br>
+    +------------+-----------------+------------+------+<br>
+    ; 187.2 MHz ; 187.2 MHz      ; clk        ;      ;<br>
+    +------------+-----------------+------------+------+<br>
+</p>
 <p>
     Cycles: 486
 
-    Delay:  (microseconds)
-    Delay*Area:  (ms*Area)
+    Delay: 2.59 (microseconds)
+    Delay*Area: 119.48 (ms*Area)
 </p>
-This iteration showed the mos improvement to FPGA resources and cycles. To do this I took advantage of
-the asynchronous read to save cycles, and I went back to limiting the w[] array to only 16 elements.
-In the previous iterations I attempted to complete the word expansion all at once, but this method would
-not fit on the FPGA I am using.
+<p>
+    Logic utilization : 98 %<br>
+        Combinational ALUTs : 12,369 / 36,100 ( 34 % )<br>
+        Memory ALUTs : 0 / 18,050 ( 0 % )<br>
+        Dedicated logic registers : 33,763 / 36,100 ( 94 % )<br>
+    Total registers : 33763<br>
+</p>
+
+Since I am optimizing for Area and Speed, this pipelined version falls short of the efficiency shown in the last iteration.
+Splitting up the critical path increased Fmax substantially, but the increase in cycles and registers shows that a larger Fmax
+does not result in a more efficient design.
