@@ -39,23 +39,6 @@ parameter int k[0:63] = '{
 };
 
 
-
-/* SHA256 hash round, updates a,b,c,d,e,f,g and h */
-function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
-                                 input logic [7:0] t);
-    logic [31:0] S1, S0, ch, maj, t1, t2; // internal signals
-begin
-    S1 = rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25);
-    ch = (e & f) ^ ((~e) & g);
-    t1 = ch + S1 + h + k[t] + w;
-    S0 = rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22);
-    maj = (a & b) ^ (a & c) ^ (b & c);
-    t2 = maj + S0;
-    sha256_op = {t1 + t2, a, b, c, d + t1, e, f, g};
-end
-endfunction
-
-
 /* Connect DUT and testbench signals for memory access */
 assign mem_clk = clk;
 assign mem_addr = cur_addr;

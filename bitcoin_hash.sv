@@ -11,8 +11,7 @@ logic        cur_we;
 logic        start0, start1, start2, done1[16:0];
 logic [15:0] cur_addr;
 logic [31:0] cur_write_data;
-//logic [31:0] message[31:0];
-logic [31:0] base_block[15:0];
+logic [31:0] message[31:0];
 logic [15:0] offset;
 logic [31:0] w[15:0][15:0];
 logic [31:0] h_ini[7:0];
@@ -64,7 +63,7 @@ generate
 			.output_addr,
 			.mem_read_data(w[q]), //store second digital block WITH NONCE in w[q]
 			.h_in(h_ini),
-			.done(done1[q+1]),
+			.done(done1[q + 1]),
 			.mem_write_data(h[q]) //write output hash values into h[q]
 			);
 	end
@@ -112,38 +111,26 @@ begin
 	
 	/* Populate message array with two n-bit blocks (NO NONCE VALUES ADDED) */
 	READ: begin
-		/* Read purely message data, store in array */
-		if(offset < 16) begin
-				w[0][offset] <= mem_read_data;
-				
+		/* Read purely message data, store in message array */
+		if(offset < 19) begin
+				message[offset] <= mem_read_data;
+				/* fill out message array with zeros */
+				if(offset + 20 < 32)
+					message[offset + 20] <= 32'h0;
 				offset <= offset + 1'b1;
-				state <= READ;
+				state <= WAIT;
 		end
-		
+		/* Add padding and size after Message bits */
 		else begin
-			/* read last three words into 2nd 512-bit block */
-			if(offset < 19) begin
-				base_block[offset-16] <= mem_read_data;
-				offset <= offset + 1'b1;
-				state <= READ;
-			end
-			else begin
-				base_block[3] <= 32'h0;
-				base_block[4]  <= 32'h80000000;
-				base_block[5]  <= 32'h0;
-				base_block[6]  <= 32'h0;
-				base_block[7]  <= 32'h0;
-				base_block[8]  <= 32'h0;
-				base_block[9]  <= 32'h0;
-				base_block[10] <= 32'h0;
-				base_block[11] <= 32'h0;
-				base_block[12] <= 32'h0;
-				base_block[13] <= 32'h0;
-				base_block[14] <= 32'h0;
-				base_block[15] <= 32'd640;
+				message[20] <= 32'h80000000;
+				message[31] <= 32'd640;
 				offset <= 0;
+				i <= 0;
+				/* w[0][n] holds first 512-bit message block */
+				for(int i = 0; i<16; i++) begin 
+					w[0][i] <= message[i];
+				end
 				state <= PHASE1;
-			end
 		end
 	end
 	
@@ -159,16 +146,36 @@ begin
 	
 	SET2: begin
 	  start0 <= 0;
+	  
+	  /* wait until Phase 1 output hash values are produced */
+	  if(done1[0] == 1) begin
+	  
 	  /* store the 2nd 512-bit block 16 times, each with a */
 	  /* different nonce value */
-    for(j = 0; j < 16; j++) begin
-        for(i = 0; i < 16; i++) begin
-            if(i == 3)
-                w[j][i] <= j;
-            else
-                w[j][i] <= base_block[i];
-        end
-    end
+		for(j = 0; j<16; j++) begin
+			for(i = 0; i<16; i++) begin
+				if(i != 3)
+					w[j][i] <= message[i + 16];
+			end
+		end
+		
+		/* add nonce values */
+		w[0][3] <= 32'd0;
+		w[1][3] <= 32'd1;
+		w[2][3] <= 32'd2;
+		w[3][3] <= 32'd3;
+		w[4][3] <= 32'd4;
+		w[5][3] <= 32'd5;
+		w[6][3] <= 32'd6;
+		w[7][3] <= 32'd7;
+		w[8][3] <= 32'd8;
+		w[9][3] <= 32'd9;
+		w[10][3] <= 32'd10;
+		w[11][3] <= 32'd11;
+		w[12][3] <= 32'd12;
+		w[13][3] <= 32'd13;
+		w[14][3] <= 32'd14;
+		w[15][3] <= 32'd15;
 		
 		for(n = 0; n<8; n++) begin
 			h_ini[n] <= h_phase1[n];
@@ -177,6 +184,9 @@ begin
 		i <= 0;
 		j <= 0;
 		state <= PHASE2;
+	 end
+	 else
+		state <= SET2;
 	end
 	
 	PHASE2: begin
@@ -189,7 +199,11 @@ begin
 	end
 	
 	SET3: begin
-		start1 <= 0;
+	 start1 <= 0;
+	 
+	 /* wait until all Phase 2 output hashes are produced */
+	 if(done1[16] == 1) begin
+	 
 		/* set w array to hold all 16 output hashes from Phase 2 */
 		for(j = 0; j<16; j++) begin
 			for(i = 0; i<16; i++) begin
@@ -229,6 +243,10 @@ begin
 		n <= 0;
 		
 		state <= PHASE3;
+	 end
+	 
+	 else
+		state <= SET3;
 	end
 	
 	/* begin the 16 generated instances of SHA-256 */
@@ -244,9 +262,13 @@ begin
 	
 	/* once all 16 hashes are produced, begin to write to memory */
 	SET4: begin
-		start1 <= 0;
+	 start1 <= 0;
+	 if(done1[1] == 1) begin
 		cur_we <= 1;
 		state <= WRITE;
+	 end
+	 else 
+		state <= SET4;
 	end
 	
 	/* write the first word of each of the 16 final output hashes */
