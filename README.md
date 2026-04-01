@@ -1,5 +1,3 @@
-# Bitcoin Hash Pipeline — FSM Design in SystemVerilog
-
 ## Overview
 This project implements a Bitcoin Hash model in SystemVerilog built around the, slightly modified, `simplified_sha256.sv` module. 
 [My SHA-256 hardware module](https://github.com/bigbyrus/SHA-256) was modified so that it left all memory accesses to be done by the top module, `bitcoin_hash.sv`. 
@@ -19,12 +17,6 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
     +------------+-----------------+------------+------+<br>
 </p>
 <p>
-    Cycles: 348
-
-    Delay: 2.98 (microseconds)
-    Delay*Area: 139.44 (ms*Area)    
-</p>
-<p>
     Logic utilization : 95 %<br>
         Combinational ALUTs : 18,956 / 36,100 ( 53 % )<br>
         Memory ALUTs : 0 / 18,050 ( 0 % )<br>
@@ -32,6 +24,10 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
     Total registers : 27762<br>
 </p>
 
+    Cycles: 348
+    Delay: 2.98 (microseconds)
+    Delay*Area: 139.44 (ms*Area)
+    
 ---
 
 ### Reduced SHA-256 Logic, Second Iteration
@@ -46,18 +42,16 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
     +------------+-----------------+------------+------+<br>
 </p>
 <p>
-    Cycles: 342
-
-    Delay: 2.79 (microseconds)
-    Delay*Area: 130.54 (ms*Area)
-</p>
-<p>
     Logic utilization : 95 %<br>
         Combinational ALUTs : 18,923 / 36,100 ( 52 % )<br>
         Memory ALUTs : 0 / 18,050 ( 0 % )<br>
         Dedicated logic registers : 27,744 / 36,100 ( 77 % )<br>
     Total registers : 27744<br>
 </p>
+
+    Cycles: 342
+    Delay: 2.79 (microseconds)
+    Delay*Area: 130.54 (ms*Area)
 
 ---
 
@@ -90,10 +84,10 @@ try to optimize the design in a more efficient way.
     +------------+-----------------+------------+------+<br>
 </p>
 <p>
-    Cycles: 294
+    Cycles: 534
 
-    Delay: 2.18 (microseconds)
-    Delay*Area: 88.09 (ms*Area)
+    Delay: 4.11 (microseconds)
+    Delay*Area: 195.62 (ms*Area)
 </p>
 <p>
     Logic utilization : 95 %<br>
@@ -103,10 +97,10 @@ try to optimize the design in a more efficient way.
     Total registers : 27744<br>
 </p>
 
-This iteration has been the best so far, improving speed and size.
+    Cycles: 534
+    Delay: 4.11 (microseconds)
+    Delay*Area: 195.62 (ms*Area)
 
-I went back to my original method of keeping the w[] array at 16 elements, which saves a lot of space.
-In my previous iterations I would do the entire word expansion at once, producing a w[] array with 64 indices. 
-Another change I made was taking advantage of the asynchronous reads, which I hadn't done before. This allowed
-me to save a lot of cycles by reading the 512-bit block from the top level module into the w[] array. I also 
-saved a lot of FPGA resources by reusing the same 16 element w[] array in every cycle.
+    Attempting to pipeline the design in this way caused the cycles to increase significantly while not offering much
+improvement to the clock frequency. This lets me know that **pipelining the SHA-256 operation itself** will give me a more
+efficient design. 
