@@ -61,32 +61,52 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
 
 ---
 
-### Attempted to Pipeline Design, Third Iteration
-    In this iteration, I separated the word expansion step from the SHA-256 operation step, hoping to reduce the 
-critical path of this system so that the design could run at a higher clock frequency.
+### Separated Word Expansion, Third Iteration
+In this iteration, I separated the word expansion step from the always_ff block so that cycles are not wasted
+computing this word expansion that can be executed all at once.
+
+<p>
+    Logic utilization : 368 %<br>
+        Combinational ALUTs : 114,627 / 36,100 ( 52 % )<br>
+        Memory ALUTs : 0 / 18,050 ( 0 % )<br>
+        Dedicated logic registers : 19,038 / 36,100 ( 77 % )<br>
+    Total registers : 28290<br>
+</p>
+
+This attempt proved to be useless because the design does not fit onto the FPGA, although I did see the number of cycles
+decrease substantially. Since the area constraint is critical in this design, I will step away from this approach and 
+try to optimize the design in a more efficient way.
+
+---
+
+### Fourth Iteration
 <p>
     +--------------------------------------------------+<br>
     ; Slow 900mV 100C Model Fmax Summary               ;<br>
     +------------+-----------------+------------+------+<br>
     ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;<br>
     +------------+-----------------+------------+------+<br>
-    ; 129.79 MHz ; 129.79 MHz      ; clk        ;      ;<br>
+    ; 135.03 MHz ; 135.03 MHz      ; clk        ;      ;<br>
     +------------+-----------------+------------+------+<br>
 </p>
 <p>
-    Cycles: 534
+    Cycles: 294
 
-    Delay: 4.11 (microseconds)
-    Delay*Area: 195.62 (ms*Area)
+    Delay: 2.18 (microseconds)
+    Delay*Area: 88.09 (ms*Area)
 </p>
 <p>
     Logic utilization : 95 %<br>
-        Combinational ALUTs : 18,931 / 36,100 ( 52 % )<br>
+        Combinational ALUTs : 12,716 / 36,100 ( 52 % )<br>
         Memory ALUTs : 0 / 18,050 ( 0 % )<br>
-        Dedicated logic registers : 28,290 / 36,100 ( 77 % )<br>
-    Total registers : 28290<br>
+        Dedicated logic registers : 27,744 / 36,100 ( 77 % )<br>
+    Total registers : 27744<br>
 </p>
 
-    Attempting to pipeline the design in this way caused the cycles to increase significantly while not offering much
-improvement to the clock frequency. This lets me know that **pipelining the SHA-256 operation itself** will give me a more
-efficient design. 
+This iteration has been the best so far, improving speed and size.
+
+I went back to my original method of keeping the w[] array at 16 elements, which saves a lot of space.
+In my previous iterations I would do the entire word expansion at once, producing a w[] array with 64 indices. 
+Another change I made was taking advantage of the asynchronous reads, which I hadn't done before. This allowed
+me to save a lot of cycles by reading the 512-bit block from the top level module into the w[] array. I also 
+saved a lot of FPGA resources by reusing the same 16 element w[] array in every cycle.

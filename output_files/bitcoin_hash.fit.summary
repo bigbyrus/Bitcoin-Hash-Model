@@ -1,4 +1,4 @@
-Fitter Status : Successful - Tue Mar 31 14:12:44 2026
+Fitter Status : Successful - Tue Mar 31 18:26:10 2026
 Quartus Prime Version : 20.1.0 Build 711 06/05/2020 SJ Lite Edition
 Revision Name : bitcoin_hash
 Top-level Entity Name : bitcoin_hash
@@ -6,10 +6,10 @@ Family : Arria II GX
 Device : EP2AGX45DF29I5
 Timing Models : Final
 Logic utilization : 95 %
-    Combinational ALUTs : 18,931 / 36,100 ( 52 % )
+    Combinational ALUTs : 12,716 / 36,100 ( 35 % )
     Memory ALUTs : 0 / 18,050 ( 0 % )
-    Dedicated logic registers : 28,290 / 36,100 ( 78 % )
-Total registers : 28290
+    Dedicated logic registers : 27,744 / 36,100 ( 77 % )
+Total registers : 27744
 Total pins : 118 / 404 ( 29 % )
 Total virtual pins : 0
 Total block memory bits : 0 / 2,939,904 ( 0 % )
