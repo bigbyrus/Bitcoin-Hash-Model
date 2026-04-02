@@ -11,7 +11,7 @@ logic        cur_we;
 logic        start0, start1, start2, done1[16:0];
 logic [15:0] cur_addr;
 logic [31:0] cur_write_data;
-logic [31:0] message[31:0];
+logic [31:0] base_block[16];
 logic [15:0] offset;
 logic [31:0] w[15:0][15:0];
 logic [31:0] h_ini[7:0];
@@ -70,8 +70,7 @@ generate
 endgenerate
 			
 			
-always_ff @(posedge clk, negedge reset_n)
-begin
+always_ff @(posedge clk, negedge reset_n) begin
   if (!reset_n) begin
     cur_we <= 1'b0;
     state <= IDLE;
@@ -109,28 +108,37 @@ begin
 		state <= READ;
 	end
 	
-	/* Populate message array with two n-bit blocks (NO NONCE VALUES ADDED) */
+
 	READ: begin
-		/* Read purely message data, store in message array */
-		if(offset < 19) begin
-				message[offset] <= mem_read_data;
-				/* fill out message array with zeros */
-				if(offset + 20 < 32)
-					message[offset + 20] <= 32'h0;
+	
+		/* place first 16 words in w[0][x] */
+		if(offset < 16) begin
+			w[0][offset] <= mem_read_data;
+			offset <= offset + 1'b1;
+			state <= WAIT;
+		end
+		
+		/* store 2nd 512-bit block in "base_block" */
+		else begin
+			
+			/* base_block[3] is where the nonce value is stored*/
+			if(offset < 19) begin
+				base_block[offset-16] <= mem_read_data;
 				offset <= offset + 1'b1;
 				state <= WAIT;
-		end
-		/* Add padding and size after Message bits */
-		else begin
-				message[20] <= 32'h80000000;
-				message[31] <= 32'd640;
+			end
+			
+			else begin
+				base_block[3] <= 32'h0;
+				base_block[4]  <= 32'h80000000;
+				base_block[15] <= 32'd640;
+				
+				for(int n=5; n<15; n++)
+					base_block[n] <= 32'h0;
+				
 				offset <= 0;
-				i <= 0;
-				/* w[0][n] holds first 512-bit message block */
-				for(int i = 0; i<16; i++) begin 
-					w[0][i] <= message[i];
-				end
 				state <= PHASE1;
+			end
 		end
 	end
 	
@@ -155,27 +163,11 @@ begin
 		for(j = 0; j<16; j++) begin
 			for(i = 0; i<16; i++) begin
 				if(i != 3)
-					w[j][i] <= message[i + 16];
+					w[j][i] <= base_block[i];
+				else
+					w[j][i] <= j;
 			end
 		end
-		
-		/* add nonce values */
-		w[0][3] <= 32'd0;
-		w[1][3] <= 32'd1;
-		w[2][3] <= 32'd2;
-		w[3][3] <= 32'd3;
-		w[4][3] <= 32'd4;
-		w[5][3] <= 32'd5;
-		w[6][3] <= 32'd6;
-		w[7][3] <= 32'd7;
-		w[8][3] <= 32'd8;
-		w[9][3] <= 32'd9;
-		w[10][3] <= 32'd10;
-		w[11][3] <= 32'd11;
-		w[12][3] <= 32'd12;
-		w[13][3] <= 32'd13;
-		w[14][3] <= 32'd14;
-		w[15][3] <= 32'd15;
 		
 		for(n = 0; n<8; n++) begin
 			h_ini[n] <= h_phase1[n];
@@ -263,7 +255,7 @@ begin
 	/* once all 16 hashes are produced, begin to write to memory */
 	SET4: begin
 	 start1 <= 0;
-	 if(done1[1] == 1) begin
+	 if(done1[15] == 1) begin
 		cur_we <= 1;
 		state <= WRITE;
 	 end
@@ -271,8 +263,7 @@ begin
 		state <= SET4;
 	end
 	
-	/* write the first word of each of the 16 final output hashes */
-	/* to verify functionality of the digital design */
+	/* write first word to memory */
 	WRITE: begin
 	cur_addr <= output_addr;
 		if(i < 16) begin
