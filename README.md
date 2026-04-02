@@ -7,51 +7,48 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
 ---
 
 ### First Iteration
-<p>
-    +--------------------------------------------------+<br>
-    ; Slow 900mV 100C Model Fmax Summary               ;<br>
-    +------------+-----------------+------------+------+<br>
-    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;<br>
-    +------------+-----------------+------------+------+<br>
-    ; 116.59 MHz ; 116.59 MHz      ; clk        ;      ;<br>
-    +------------+-----------------+------------+------+<br>
-</p>
-<p>
-    Logic utilization : 95 %<br>
-        Combinational ALUTs : 18,956 / 36,100 ( 53 % )<br>
-        Memory ALUTs : 0 / 18,050 ( 0 % )<br>
-        Dedicated logic registers : 27,762 / 36,100 ( 77 % )<br>
-    Total registers : 27762<br>
-</p>
+
+    +--------------------------------------------------+
+    ; Slow 900mV 100C Model Fmax Summary               ;
+    +------------+-----------------+------------+------+
+    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;
+    +------------+-----------------+------------+------+
+    ; 116.59 MHz ; 116.59 MHz      ; clk        ;      ;
+    +------------+-----------------+------------+------+
+
+
+    Logic utilization : 95 %
+        Combinational ALUTs : 18,956 / 36,100 ( 53 % )
+        Memory ALUTs : 0 / 18,050 ( 0 % )
+        Dedicated logic registers : 27,762 / 36,100 ( 77 % )
+    Total registers : 27762
 
     Cycles: 348
     Delay: 2.98 (microseconds)
-    Delay*Area: 139.44 (ms*Area)
+    Delay * Area: 139.44 (ms*Area)
     
 ---
 
 ### Reduced SHA-256 Logic, Second Iteration
 
-<p>
-    +--------------------------------------------------+<br>
-    ; Slow 900mV 100C Model Fmax Summary               ;<br>
-    +------------+-----------------+------------+------+<br>
-    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;<br>
-    +------------+-----------------+------------+------+<br>
-    ; 122.26 MHz ; 122.26 MHz      ; clk        ;      ;<br>
-    +------------+-----------------+------------+------+<br>
-</p>
-<p>
-    Logic utilization : 95 %<br>
-        Combinational ALUTs : 18,923 / 36,100 ( 52 % )<br>
-        Memory ALUTs : 0 / 18,050 ( 0 % )<br>
-        Dedicated logic registers : 27,744 / 36,100 ( 77 % )<br>
-    Total registers : 27744<br>
-</p>
+
+    +--------------------------------------------------+
+    ; Slow 900mV 100C Model Fmax Summary               ;
+    +------------+-----------------+------------+------+
+    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;
+    +------------+-----------------+------------+------+
+    ; 122.26 MHz ; 122.26 MHz      ; clk        ;      ;
+    +------------+-----------------+------------+------+
+
+    Logic utilization : 95 %
+        Combinational ALUTs : 18,923 / 36,100 ( 52 % )
+        Memory ALUTs : 0 / 18,050 ( 0 % )
+        Dedicated logic registers : 27,744 / 36,100 ( 77 % )<
+    Total registers : 27744
 
     Cycles: 342
     Delay: 2.79 (microseconds)
-    Delay*Area: 130.54 (ms*Area)
+    Delay * Area: 130.54 (ms*Area)
 
 ---
 
@@ -59,13 +56,13 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
 In this iteration, I separated the word expansion step from the always_ff block so that cycles are not wasted
 computing this word expansion that can be executed all at once.
 
-<p>
-    Logic utilization : 368 %<br>
-        Combinational ALUTs : 114,627 / 36,100 <br>
-        Memory ALUTs : 0 / 18,050 <br>
-        Dedicated logic registers : 19,038 / 36,100 )<br>
-    Total registers : 28290<br>
-</p>
+
+    Logic utilization : 368 %
+        Combinational ALUTs : 114,627 / 36,100
+        Memory ALUTs : 0 / 18,050
+        Dedicated logic registers : 19,038 / 36,100 
+    Total registers : 28290
+
 
 This attempt proved to be useless because the design does not fit onto the FPGA, although I did see the number of cycles
 decrease substantially. Since the area constraint is critical in this design, I will step away from this approach and 
@@ -74,28 +71,27 @@ try to optimize the design in a more efficient way.
 ---
 
 ### Fourth Iteration
-<p>
-    +--------------------------------------------------+<br>
-    ; Slow 900mV 100C Model Fmax Summary               ;<br>
-    +------------+-----------------+------------+------+<br>
-    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;<br>
-    +------------+-----------------+------------+------+<br>
-    ; 135.03 MHz ; 135.03 MHz      ; clk        ;      ;<br>
-    +------------+-----------------+------------+------+<br>
-</p>
-<p>
-    Cycles: 294
 
+    +--------------------------------------------------+
+    ; Slow 900mV 100C Model Fmax Summary               ;
+    +------------+-----------------+------------+------+
+    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;
+    +------------+-----------------+------------+------+
+    ; 135.03 MHz ; 135.03 MHz      ; clk        ;      ;
+    +------------+-----------------+------------+------+
+
+
+    Cycles: 294
     Delay: 2.18 (microseconds)
-    Delay*Area: 88.09 (ms*Area)
-</p>
-<p>
-    Logic utilization : 95 %<br>
-        Combinational ALUTs : 12,716 / 36,100 ( 34 % )<br>
-        Memory ALUTs : 0 / 18,050 ( 0 % )<br>
-        Dedicated logic registers : 27,744 / 36,100 ( 77 % )<br>
-    Total registers : 27744<br>
-</p>
+    Delay * Area: 88.09 (ms*Area)
+
+
+    Logic utilization : 95 %
+        Combinational ALUTs : 12,716 / 36,100 ( 34 % )
+        Memory ALUTs : 0 / 18,050 ( 0 % )
+        Dedicated logic registers : 27,744 / 36,100 ( 77 % )
+    Total registers : 27744
+
 This iteration showed the most improvement (so far) to FPGA resources and cycles. To do this I took advantage of
 the asynchronous read to save cycles, and I went back to limiting the w[] array to only 16 elements.
 In the previous iterations I attempted to complete the word expansion all at once, but this method would
@@ -104,28 +100,26 @@ not fit on the FPGA I am using.
 ---
 
 ### Pipelined Version, Fifth Iteration
-<p>
-    +--------------------------------------------------+<br>
-    ; Slow 900mV 100C Model Fmax Summary               ;<br>
-    +------------+-----------------+------------+------+<br>
-    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;<br>
-    +------------+-----------------+------------+------+<br>
-    ; 187.2 MHz ; 187.2 MHz      ; clk        ;      ;<br>
-    +------------+-----------------+------------+------+<br>
-</p>
-<p>
-    Cycles: 486
 
+    +--------------------------------------------------+
+    ; Slow 900mV 100C Model Fmax Summary               ;
+    +------------+-----------------+------------+------+
+    ; Fmax       ; Restricted Fmax ; Clock Name ; Note ;
+    +------------+-----------------+------------+------+
+    ; 187.2 MHz  ; 187.2 MHz       ; clk        ;      ;
+    +------------+-----------------+------------+------+
+
+
+    Cycles: 486
     Delay: 2.59 (microseconds)
-    Delay*Area: 119.48 (ms*Area)
-</p>
-<p>
-    Logic utilization : 98 %<br>
-        Combinational ALUTs : 12,369 / 36,100 ( 34 % )<br>
-        Memory ALUTs : 0 / 18,050 ( 0 % )<br>
-        Dedicated logic registers : 33,763 / 36,100 ( 94 % )<br>
-    Total registers : 33763<br>
-</p>
+    Delay * Area: 119.48 (ms*Area)
+
+
+    Logic utilization : 98 %
+        Combinational ALUTs : 12,369 / 36,100 ( 34 % )
+        Memory ALUTs : 0 / 18,050 ( 0 % )
+        Dedicated logic registers : 33,763 / 36,100 ( 94 % )
+    Total registers : 33763
 
 Since I am optimizing for Area and Speed, this pipelined version falls short of the efficiency shown in the last iteration.
 Splitting up the critical path increased Fmax substantially, but the increase in cycles and registers shows that a larger Fmax
