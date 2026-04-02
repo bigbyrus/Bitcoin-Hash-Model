@@ -13,18 +13,15 @@ enum logic [1:0] {IDLE, BLOCK, COMPUTE, WRITE} state;
 
 // Local variables
 logic [31:0] w[16];
+logic [31:0] message[32];
 logic [31:0] h0, h1, h2, h3, h4, h5, h6, h7;
 logic [31:0] a, b, c, d, e, f, g, h;
 logic [ 7:0] i, tem;
-logic        cur_we, stage;
+logic [15:0] offset;
+logic        cur_we;
 logic [15:0] cur_addr;
 logic [31:0] cur_write_data;
 logic [31:0] s1, s0;
-
-logic [31:0] S1_r, S0_r, ch_r, maj_r;
-logic [31:0] t1_partial;
-logic [31:0] a_r, b_r, c_r, d_r, e_r, f_r, g_r;
-logic [31:0] t1, t2;
 
 // SHA256 K constants
 parameter int k[0:63] = '{
@@ -39,9 +36,26 @@ parameter int k[0:63] = '{
 };
 
 
+
+/* SHA256 hash round, updates a,b,c,d,e,f,g and h */
+function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
+                                 input logic [7:0] t);
+    logic [31:0] S1, S0, ch, maj, t1, t2; // internal signals
+begin
+    S1 = rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25);
+    ch = (e & f) ^ ((~e) & g);
+    t1 = ch + S1 + h + k[t] + w;
+    S0 = rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22);
+    maj = (a & b) ^ (a & c) ^ (b & c);
+    t2 = maj + S0;
+    sha256_op = {t1 + t2, a, b, c, d + t1, e, f, g};
+end
+endfunction
+
+
 /* Connect DUT and testbench signals for memory access */
 assign mem_clk = clk;
-assign mem_addr = cur_addr;
+assign mem_addr = cur_addr + offset;
 assign mem_we = cur_we;
 
 
@@ -88,92 +102,47 @@ always_ff @(posedge clk, negedge reset_n) begin
 				h <= h_in[7];
 
 				cur_addr <= 16'b0;
+				offset <= 16'b0;
 				i <= 8'b0;
 				tem <= 8'b0;
-				cur_we <= 1'b0;
-				stage <= 1'b0;
+				cur_we <= 0;
 				state <= BLOCK;
 			end
 		end
 		
-		
 		BLOCK: begin
-			for(i = 0; i < 16; i++)
-				w[i] = mem_read_data[i];
-			i <= 8'b0;
+			for(int n = 0; n < 16; n++)
+				w[n] = mem_read_data[n];
 			state <= COMPUTE;
 		end
-		
-		
-		COMPUTE: begin
-			if(tem < 64) begin
-			
-				/* first stage of SHA-256 operation */
-				if(stage == 0) begin
-				
-					/* generate new word in w[] array (word expansion) */
-					for(i = 0; i < 15; i++)
-						w[i] <= w[i+1];
-					w[15] <= expansion;
-				
-					/* early computations */
-					S1_r <= rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25);
-					ch_r <= (e & f) ^ ((~e) & g);
-					S0_r <= rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22);
-					maj_r <= (a & b) ^ (a & c) ^ (b & c);
-				
-					/* do some adds now */
-					t1_partial <= h + k[tem] + w[0];
-				
-					/* save A-H values for the next clock cycle */
-					a_r <= a;
-					b_r <= b;
-					c_r <= c;
-					d_r <= d;
-					e_r <= e;
-					f_r <= f;
-					g_r <= g;
-					
-					/* continue to next stage */
-					stage <= 1'b1;
-				end
-				
-				/*  */
-				else begin
-					t1 = t1_partial + ch_r + S1_r;
-					t2 = maj_r + S0_r;
-					
-					{a, b, c, d, e, f, g, h} <= {t1 + t2,
-						a_r,
-						b_r,
-						c_r,
-						d_r + t1,
-						e_r,
-						f_r,
-						g_r };
-					
-					tem <= tem + 1'b1;
-					stage <= 1'b0;
-				end
-			end 
-			else begin
-				/* update H0-H7 vectors */
-				h0 <= a + h0;
-				h1 <= b + h1;
-				h2 <= c + h2;
-				h3 <= d + h3;
-				h4 <= e + h4;
-				h5 <= f + h5;
-				h6 <= g + h6;
-				h7 <= h + h7;
-				i <= 8'b0;
-				tem <= 8'b0;
-				state <= WRITE;
-			end
+
+	 
+	COMPUTE: begin
+		if(tem < 64) begin
+			for(int n = 0; n < 15; n++) 
+				w[n] <= w[n+1];
+			w[15] <= expansion;
+			{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, w[0], tem);
+			tem <= tem + 1'b1;
+			state <= COMPUTE;
+		end else begin
+			/* update H0-H7 vectors */
+			h0 <= a + h0;
+			h1 <= b + h1;
+			h2 <= c + h2;
+			h3 <= d + h3;
+			h4 <= e + h4;
+			h5 <= f + h5;
+			h6 <= g + h6;
+			h7 <= h + h7;
+			i <= 8'b0;
+			tem <= 8'b0;
+			state <= WRITE;
 		end
+	 end
 
 
-		WRITE: begin
+    WRITE: begin
 			if(i < 8) begin
 				case(i)
 					0: mem_write_data[i] <= h0;
