@@ -1,8 +1,11 @@
 ## Overview
 This project implements a Bitcoin Hash model in SystemVerilog built around the, slightly modified, `simplified_sha256.sv` module. 
-[My SHA-256 hardware module](https://github.com/bigbyrus/SHA-256) was modified so that it left all memory accesses to be done by the top module, `bitcoin_hash.sv`. 
-This way the `simplified_sha256.sv` module only concerns itself with processing 512-bit blocks, and storing the output hashes in an unpacked array of 8, 32-bit, elements.
-The design is structured to mimic Bitcoin's mining process where multiple nonce values are tried per iteration.
+[My SHA-256 hardware module](https://github.com/bigbyrus/SHA-256) was modified so that it only concerns itself with processing 512-bit blocks, and writing the output hash to the top module, `bitcoin_hash.sv`.
+The design is structured to mimic **Bitcoin's mining process where a 640-bit block header is hashed repeatedly, trying different nonce values**. The specific project flow is as follows: 
+
+<p align="center">
+  <img src="assets/bitcoinhash.png" width="600">
+</p>
 
 ---
 
@@ -74,7 +77,7 @@ The design is structured to mimic Bitcoin's mining process where multiple nonce 
         Dedicated logic registers : 33,762 / 36,100 ( 94 % )
     Total registers : 33762
 
-Since I am optimizing for Area and Speed, this pipelined version falls short of the efficiency shown in the last iteration.
+Since I am optimizing for Area and Speed, this pipelined version falls short in terms of efficiency.
 Splitting up the critical path increased Fmax substantially, but the increase in cycles and registers shows that a larger Fmax
 does not directly contribute to a more efficient design.
 
