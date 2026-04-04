@@ -23,10 +23,8 @@ The purpose of this project was to optimize the design for area, so that I could
     ; 187.2 MHz  ; 187.2 MHz       ; clk        ;      ;
     +------------+-----------------+------------+------+
 
-
     Cycles: 486
     Delay: 2.59 (microseconds)
-
 
     Logic utilization : 98 %
         Combinational ALUTs : 12,488 / 36,100 ( 34 % )
@@ -36,7 +34,7 @@ The purpose of this project was to optimize the design for area, so that I could
     
     Delay * Area: 119.79 (ms*Area)
 
-Since I am optimizing for Area and Speed, this pipelined version falls short in terms of efficiency. Splitting up the SHA-256 hash round into two pipeline stages increased Fmax substantially, but the increase in cycles and registers shows that a larger Fmax does not directly contribute to a more efficient design.
+Since I am optimizing for Area and Speed, this pipelined version falls short in terms of efficiency. Splitting the SHA-256 hash round into two pipeline stages increased Fmax substantially, but the increase in cycles and registers shows that a larger Fmax does not directly contribute to a more efficient design.
 
 ---
 
