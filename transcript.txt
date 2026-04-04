@@ -54,7 +54,7 @@ run -all
 # 
 # CONGRATULATIONS! All your hash results are correct!
 # 
-# Total number of cycles:         348
+# Total number of cycles:         294
 # 
 # 
 # ***************************

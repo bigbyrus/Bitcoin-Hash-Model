@@ -1,3 +1,9 @@
+/*-----------------------------------------------------------*/
+/* This module uses the SHA-256 algorithm to process a given */
+/* 512-bit block, generating the 256-bit hashes used in the  */
+/* top level module 														 */
+/*-----------------------------------------------------------*/
+
 module simplified_sha256 #(parameter integer NUM_OF_WORDS = 16)(
     input  logic        clk, reset_n, start,
     input  logic [15:0] message_addr, output_addr,
@@ -66,6 +72,7 @@ function logic [31:0] rightrotate(input logic [31:0] x,
 endfunction
 
 
+/* word expansion, executed each hash round */
 function logic [31:0] expansion;
 
 	s0 = rightrotate(w[1], 7) ^ rightrotate(w[1], 18) ^ (w[1] >> 3);
@@ -75,13 +82,13 @@ function logic [31:0] expansion;
 endfunction
 
 
-/* Get a BLOCK from the top module, COMPUTE output hash using SHA256_op    */
-/* Write back hash value back to top module											*/
 always_ff @(posedge clk, negedge reset_n) begin
 	if(!reset_n) begin
 		state <= IDLE;
 	end else 
 	case (state)
+		
+		/* use hash constants provided by top module */
 		IDLE: begin 
 			if(start) begin
 				h0 <= h_in[0];  
@@ -110,39 +117,49 @@ always_ff @(posedge clk, negedge reset_n) begin
 			end
 		end
 		
+		/* store 512-bit block for processing */
 		BLOCK: begin
 			for(int n = 0; n < 16; n++)
 				w[n] = mem_read_data[n];
 			state <= COMPUTE;
 		end
 
-	 
-	COMPUTE: begin
-		if(tem < 64) begin
-			for(int n = 0; n < 15; n++) 
-				w[n] <= w[n+1];
-			w[15] <= expansion;
-			{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, w[0], tem);
-			tem <= tem + 1'b1;
-			state <= COMPUTE;
-		end else begin
-			/* update H0-H7 vectors */
-			h0 <= a + h0;
-			h1 <= b + h1;
-			h2 <= c + h2;
-			h3 <= d + h3;
-			h4 <= e + h4;
-			h5 <= f + h5;
-			h6 <= g + h6;
-			h7 <= h + h7;
-			i <= 8'b0;
-			tem <= 8'b0;
-			state <= WRITE;
+		/* execute 64 hash rounds */
+		COMPUTE: begin
+			if(tem < 64) begin
+			
+				/* word expansion */
+				for(int n = 0; n < 15; n++) 
+					w[n] <= w[n+1];
+				w[15] <= expansion;
+				
+				/* SHA-256 hash round */
+				{a, b, c, d, e, f, g, h} <= sha256_op(a, b, c, d, e, f, g, h, w[0], tem);
+				
+				/* continue.. */
+				tem <= tem + 1'b1;
+				state <= COMPUTE;
+				
+				
+			/* update H0-H7 vectors upon completion */
+			end else begin
+				h0 <= a + h0;
+				h1 <= b + h1;
+				h2 <= c + h2;
+				h3 <= d + h3;
+				h4 <= e + h4;
+				h5 <= f + h5;
+				h6 <= g + h6;
+				h7 <= h + h7;
+				i <= 8'b0;
+				tem <= 8'b0;
+				state <= WRITE;
+			end
 		end
-	 end
 
-
-    WRITE: begin
+		
+		/* asynchronously write 256-bit hash to the top-level module */
+		WRITE: begin
 			if(i < 8) begin
 				case(i)
 					0: mem_write_data[i] <= h0;
@@ -159,7 +176,7 @@ always_ff @(posedge clk, negedge reset_n) begin
 			end
 			else 
 				state <= IDLE;
-    end
+		end
    endcase
   end
 

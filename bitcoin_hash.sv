@@ -1,3 +1,11 @@
+/*-------------------*/
+/* Top Level Module  */
+/* 
+/* This module generates 16 256-bit hashes given input data of arbitrary size, */
+/* accomplished by executing 16 SHA-256 cores in parallel. Incorporating 16 	 */
+/* nonce values to mimic bitcoin mining.													 */
+/*-----------------------------------------------------------------------------*/
+
 module bitcoin_hash (input logic        clk, reset_n, start,
                      input logic [15:0] message_addr, output_addr,
                     output logic        done, mem_clk, mem_we,
@@ -7,30 +15,23 @@ module bitcoin_hash (input logic        clk, reset_n, start,
 
 parameter num_nonces = 16;
 
+
+/* local signals */
 logic        cur_we;
 logic        start0, start1, start2, done1[16:0];
+logic [7:0]  i, j, n;
 logic [15:0] cur_addr;
+logic [15:0] offset;
 logic [31:0] cur_write_data;
 logic [31:0] base_block[16];
-logic [15:0] offset;
 logic [31:0] w[15:0][15:0];
 logic [31:0] h_ini[7:0];
 logic [31:0] h[15:0][7:0], h_phase1[7:0];
-logic [7:0] i, j, n;
 
-parameter int k[64] = '{
-    32'h428a2f98,32'h71374491,32'hb5c0fbcf,32'he9b5dba5,32'h3956c25b,32'h59f111f1,32'h923f82a4,32'hab1c5ed5,
-    32'hd807aa98,32'h12835b01,32'h243185be,32'h550c7dc3,32'h72be5d74,32'h80deb1fe,32'h9bdc06a7,32'hc19bf174,
-    32'he49b69c1,32'hefbe4786,32'h0fc19dc6,32'h240ca1cc,32'h2de92c6f,32'h4a7484aa,32'h5cb0a9dc,32'h76f988da,
-    32'h983e5152,32'ha831c66d,32'hb00327c8,32'hbf597fc7,32'hc6e00bf3,32'hd5a79147,32'h06ca6351,32'h14292967,
-    32'h27b70a85,32'h2e1b2138,32'h4d2c6dfc,32'h53380d13,32'h650a7354,32'h766a0abb,32'h81c2c92e,32'h92722c85,
-    32'ha2bfe8a1,32'ha81a664b,32'hc24b8b70,32'hc76c51a3,32'hd192e819,32'hd6990624,32'hf40e3585,32'h106aa070,
-    32'h19a4c116,32'h1e376c08,32'h2748774c,32'h34b0bcb5,32'h391c0cb3,32'h4ed8aa4a,32'h5b9cca4f,32'h682e6ff3,
-    32'h748f82ee,32'h78a5636f,32'h84c87814,32'h8cc70208,32'h90befffa,32'ha4506ceb,32'hbef9a3f7,32'hc67178f2
-};
-
+/* state variables */
 enum logic [3:0] {IDLE, WAIT, READ, WAIT1, PHASE1, SET2, PHASE2, WAIT2, SET3, PHASE3, WAIT3, SET4, WRITE} state;
 
+/* output signals, connected to testbench */
 assign mem_clk = clk;
 assign mem_addr = cur_addr + offset;
 assign mem_we = cur_we;
@@ -52,7 +53,7 @@ simplified_sha256 sha256_phase1(
 			
 genvar q;
 
-/* Phase 2 */
+/* Phase 2, 16 parallel SHA-256 operations */
 generate
 	for(q = 0; q<num_nonces; q++) begin : generate_sha256_blocks
 		simplified_sha256 block(
@@ -68,16 +69,18 @@ generate
 			);
 	end
 endgenerate
-			
+
 			
 always_ff @(posedge clk, negedge reset_n) begin
-  if (!reset_n) begin
-    cur_we <= 1'b0;
-    state <= IDLE;
-  end 
+	if (!reset_n) begin
+		cur_we <= 1'b0;
+		state <= IDLE;
+	end 
   
-  else 
+	else 
    case (state)
+	
+	/* initial state, sets all variables to initial values */
 	IDLE: begin
 		if(start) begin
 			cur_addr <= message_addr;
@@ -89,8 +92,7 @@ always_ff @(posedge clk, negedge reset_n) begin
 			j <= 0;
 			n <= 0;
 			
-			/* initialize the initial hash constants for   */
-			/* the first phase of the Bitcoin hash process */
+			/* initialize the hash constants for phase 1 */
 			h_ini[0] <= 32'h6a09e667;
 			h_ini[1] <= 32'hbb67ae85;
 			h_ini[2] <= 32'h3c6ef372;
@@ -108,7 +110,7 @@ always_ff @(posedge clk, negedge reset_n) begin
 		state <= READ;
 	end
 	
-
+	/* obtain input data from memory */
 	READ: begin
 	
 		/* place first 16 words in w[0][x] */
@@ -121,13 +123,14 @@ always_ff @(posedge clk, negedge reset_n) begin
 		/* store 2nd 512-bit block in "base_block" */
 		else begin
 			
-			/* base_block[3] is where the nonce value is stored*/
+			/* base_block[3] is the nonce value */
 			if(offset < 19) begin
 				base_block[offset-16] <= mem_read_data;
 				offset <= offset + 1'b1;
 				state <= WAIT;
 			end
 			
+			/* add padding and input data size */
 			else begin
 				base_block[3] <= 32'h0;
 				base_block[4]  <= 32'h80000000;
@@ -142,7 +145,8 @@ always_ff @(posedge clk, negedge reset_n) begin
 		end
 	end
 	
-	
+	/* BEGIN PHASE1 */
+	// generate 256-bit hash for the first 512-bit block
 	PHASE1: begin
 		start0 <= 1;
 		state <= WAIT1; 
@@ -155,20 +159,23 @@ always_ff @(posedge clk, negedge reset_n) begin
 	SET2: begin
 	  start0 <= 0;
 	  
-	  /* wait until Phase 1 output hash values are produced */
+	  /* wait until Phase 1 output hash is produced */
 	  if(done1[0] == 1) begin
 	  
-	  /* store the 2nd 512-bit block 16 times, each with a */
-	  /* different nonce value */
+	  /* store the 2nd 512-bit block 16 times */
 		for(j = 0; j<16; j++) begin
 			for(i = 0; i<16; i++) begin
 				if(i != 3)
 					w[j][i] <= base_block[i];
+				
+				/* each block has its own NONCE value */
 				else
 					w[j][i] <= j;
 			end
 		end
 		
+		// 256-bit hash generated from PHASE1 is used as
+		// hash constants (H0-H7) in Phase 2
 		for(n = 0; n<8; n++) begin
 			h_ini[n] <= h_phase1[n];
 		end
@@ -177,10 +184,14 @@ always_ff @(posedge clk, negedge reset_n) begin
 		j <= 0;
 		state <= PHASE2;
 	 end
+	 
 	 else
 		state <= SET2;
 	end
 	
+	/* BEGIN PHASE2 */
+	// generate 16 different hashes for the 16 different
+	// NONCE values added to the last block
 	PHASE2: begin
 		start1 <= 1;
 		state <= WAIT2; 
@@ -190,17 +201,15 @@ always_ff @(posedge clk, negedge reset_n) begin
 		state <= SET3;
 	end
 	
+	
 	SET3: begin
 	 start1 <= 0;
 	 
-	 /* wait until all Phase 2 output hashes are produced */
-	 if(done1[16] == 1) begin
-	 
-		/* set w array to hold all 16 output hashes from Phase 2 */
+	 if(done1[16] == 1) begin	 
 		for(j = 0; j<16; j++) begin
 			for(i = 0; i<16; i++) begin
 			
-				/* store the 16 256-bit hashes */
+				/* store the 16 hashes generated in Phase 2 */
 				if(i < 8) begin
 					w[j][i] <= h[j][i];
 				end
@@ -210,10 +219,11 @@ always_ff @(posedge clk, negedge reset_n) begin
 					w[j][i] <= 32'h80000000;
 				end
 				
-				/* store the size of the block using the last 32 bits */
+				/* store the block size using the last 32 bits */
 				else if(i == 15) begin
 					w[j][i] <= 32'd256;
 				end
+				
 				/* pad with zeros */
 				else begin
 					w[j][i] <= 32'h0;
